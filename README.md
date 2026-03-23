@@ -33,15 +33,19 @@ Phase 1 implementation in progress.
   - `POST /runs/milestones-notify`
   - `GET /projects/{id}/timeline`
   - `POST /projects/{id}/email-test`
-  - `POST /projects/{id}/repo-request`
+  - `POST /projects/{id}/repo-request` (legacy/local prep)
+  - `POST /projects/{id}/publish-request` (request GitHub publication)
   - `POST /runs/process-repo-requests`
+  - `POST /runs/process-publish-requests`
   - `GET /logs/runs`
   - `GET /logs/status-audit`
   - `GET /logs/notifications`
   - `GET /logs/repo-requests`
+  - `GET /logs/publish-requests`
 - Built-in Web UI served from `/` (files in `webui/`) for status viewing/updates and run controls.
 - Project records support optional `repo_url` for GitHub/open-repo quick links.
-- Repo request workflow supports queueing + processing for projects without a configured remote repo.
+- Local git repo initialization is automatic during active-project sweeps.
+- GitHub publication is request-driven via publish-request workflow.
 
 ## Quick start
 ```bash

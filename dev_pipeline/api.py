@@ -6,9 +6,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .email_utils import send_email
-from .logs_api import get_notifications, get_repo_requests, get_runs, get_status_audit
+from .logs_api import get_notifications, get_publish_requests, get_repo_requests, get_runs, get_status_audit
 from .milestones import detect_and_notify
 from .project_detail import build_project_timeline
+from .publish_manager import process_publish_requests
+from .publish_requests import submit_publish_request
 from .registry import get_project, load_registry, set_project_status
 from .repo_manager import process_repo_requests
 from .repo_requests import submit_repo_request
@@ -111,6 +113,11 @@ def logs_repo_requests(limit: int = 50):
     return get_repo_requests(limit=limit)
 
 
+@app.get('/logs/publish-requests')
+def logs_publish_requests(limit: int = 50):
+    return get_publish_requests(limit=limit)
+
+
 @app.post('/projects/{project_id}/repo-request')
 def project_repo_request(project_id: str, body: RepoRequestBody):
     try:
@@ -123,6 +130,20 @@ def project_repo_request(project_id: str, body: RepoRequestBody):
 @app.post('/runs/process-repo-requests')
 def run_process_repo_requests(limit: int = 20):
     return process_repo_requests(limit=limit)
+
+
+@app.post('/runs/process-publish-requests')
+def run_process_publish_requests(limit: int = 20):
+    return process_publish_requests(limit=limit)
+
+
+@app.post('/projects/{project_id}/publish-request')
+def project_publish_request(project_id: str, body: RepoRequestBody):
+    try:
+        rec = submit_publish_request(project_id, source=body.source)
+        return {'ok': True, 'request': rec}
+    except KeyError:
+        raise HTTPException(status_code=404, detail='project not found')
 
 
 @app.post('/projects/{project_id}/email-test')

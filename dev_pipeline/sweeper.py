@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .paths import LOG_DIR, RUN_LOG_PATH
 from .registry import load_registry, save_registry
+from .repo_manager import ensure_repo_initialized
 
 
 def _utc_now_iso() -> str:
@@ -38,10 +39,12 @@ def run_sweep() -> dict:
             )
             continue
 
+        local_ok, local_msg = ensure_repo_initialized(repo)
         git_status = _safe_git_status(repo)
         action = {
             "project_id": project.id,
             "result": "inspected",
+            "local_repo": {"ok": local_ok, "message": local_msg},
             "git_status": git_status,
             "next_milestone": project.next_milestone,
         }

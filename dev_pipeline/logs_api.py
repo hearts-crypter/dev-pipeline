@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from .paths import AUDIT_LOG_PATH, NOTIFY_LOG_PATH, REPO_REQUEST_LOG_PATH, RUN_LOG_PATH
+from .paths import AUDIT_LOG_PATH, NOTIFY_LOG_PATH, PUBLISH_REQUEST_LOG_PATH, REPO_REQUEST_LOG_PATH, RUN_LOG_PATH
 
 
 def _read_jsonl(path: Path, limit: int = 100) -> list[dict]:
@@ -34,3 +34,7 @@ def get_notifications(limit: int = 100) -> list[dict]:
 
 def get_repo_requests(limit: int = 100) -> list[dict]:
     return _read_jsonl(REPO_REQUEST_LOG_PATH, limit=limit)
+
+
+def get_publish_requests(limit: int = 100) -> list[dict]:
+    return _read_jsonl(PUBLISH_REQUEST_LOG_PATH, limit=limit)
