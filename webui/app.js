@@ -156,11 +156,6 @@ document.getElementById('runRepoProc').onclick = async () => {
   await refreshAll();
 };
 
-document.getElementById('runPublishProc').onclick = async () => {
-  const out = await fetch('/runs/process-publish-requests', {method: 'POST'}).then(r => r.json());
-  document.getElementById('controlStatus').textContent = 'Publish processing: ' + JSON.stringify(out);
-  await refreshAll();
-};
 
 document.getElementById('loadDetail').onclick = async () => {
   await refreshProjectDetail();

@@ -69,13 +69,13 @@
 - Added explicit GitHub publish request flow:
   - `POST /projects/{id}/publish-request`
   - `GET /logs/publish-requests`
-  - `POST /runs/process-publish-requests`
+  - `POST /runs/process-publish-requests` (legacy/manual fallback)
 - Added modules/scripts:
   - `dev_pipeline/publish_requests.py`
   - `dev_pipeline/publish_manager.py`
   - `scripts/process_publish_requests.py`
 - UI now shows `Request GitHub Publish` for projects without `repo_url`.
-- Added recurring cron job `dev-pipeline-publish-request-processor` (every 30 minutes).
+- Switched publish behavior to immediate case-by-case execution from UI/API click; removed recurring publish-request cron.
 
 ### Automation schedules
 - Scheduled automation jobs:
