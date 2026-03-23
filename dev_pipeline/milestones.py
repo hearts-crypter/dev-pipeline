@@ -10,6 +10,14 @@ from .registry import load_registry
 NOTIFY_STATE_PATH = LOG_DIR / 'milestone_notify_state.json'
 NOTIFY_LOG_PATH = LOG_DIR / 'notifications.jsonl'
 
+# State schema:
+# {
+#   "<project_id>": {
+#     "notified": ["Phase 1", "Phase 2"],
+#     "last_sent_at": "..."
+#   }
+# }
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -81,7 +89,16 @@ def detect_and_notify() -> dict:
             continue
 
         completed = _parse_completed_phases(roadmap)
-        known = set(state.get(project.id, []))
+        raw_proj_state = state.get(project.id, {})
+        if isinstance(raw_proj_state, list):
+            # backward compatibility with earlier state format
+            proj_state = {'notified': raw_proj_state}
+        elif isinstance(raw_proj_state, dict):
+            proj_state = raw_proj_state
+        else:
+            proj_state = {'notified': []}
+
+        known = set(proj_state.get('notified', []))
         new = [m for m in completed if m not in known]
         if not new:
             continue
@@ -110,7 +127,10 @@ def detect_and_notify() -> dict:
             }
             sent.append(rec)
             _append_notify_log(rec)
-            state[project.id] = sorted(set(known.union(new)))
+            state[project.id] = {
+                'notified': sorted(set(known.union(new))),
+                'last_sent_at': _now_iso(),
+            }
         except Exception as e:
             rec = {
                 'sent_at': _now_iso(),
