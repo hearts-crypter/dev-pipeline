@@ -51,7 +51,7 @@ async function refreshProjects() {
   for (const p of rows) {
     const tr = document.createElement('tr');
     const repoCell = p.repo_url
-      ? `<a href="${p.repo_url}" target="_blank" rel="noopener noreferrer"><button>GitHub</button></a>`
+      ? `<a href="${p.repo_url}" target="_blank" rel="noopener noreferrer"><button>GitHub</button></a> <button id="visPub-${p.id}">Make Public</button>`
       : `<button id="pubReq-${p.id}">Request GitHub Publish</button>`;
 
     tr.innerHTML = `
@@ -100,6 +100,28 @@ async function refreshProjects() {
         }
 
         document.getElementById('controlStatus').textContent = 'Publish action: ' + JSON.stringify(out);
+        await refreshAll();
+      };
+    }
+
+    const visBtn = document.getElementById(`visPub-${p.id}`);
+    if (visBtn) {
+      visBtn.onclick = async () => {
+        if (!confirm(`Make ${p.name} GitHub repo public?`)) return;
+        const out = await fetch(`/projects/${p.id}/repo-visibility`, {
+          method: 'POST',
+          headers: {'content-type':'application/json'},
+          body: JSON.stringify({visibility: 'public', source: 'webui'})
+        }).then(r => r.json());
+
+        const result = out?.result || {};
+        if (out?.ok) {
+          const url = result.repo_url || p.repo_url;
+          setToast(`✅ Repo is now public: <a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`, 'ok');
+        } else {
+          setToast(`❌ Visibility change failed: ${result.error || JSON.stringify(out)}`, 'err');
+        }
+        document.getElementById('controlStatus').textContent = 'Visibility action: ' + JSON.stringify(out);
         await refreshAll();
       };
     }
