@@ -29,6 +29,25 @@
   <div class="grid">
     <div class="card">
       <h2>Projects</h2>
+      <p>
+        <label>Filter:
+          <select id="statusFilter">
+            <option value="all">all</option>
+            <option value="active">active</option>
+            <option value="paused">paused</option>
+            <option value="blocked">blocked</option>
+            <option value="stopped">stopped</option>
+            <option value="finished">finished</option>
+          </select>
+        </label>
+        <label style="margin-left:10px;">Sort:
+          <select id="sortMode">
+            <option value="status_then_name">status → name</option>
+            <option value="name">name</option>
+            <option value="priority_then_name">priority → name</option>
+          </select>
+        </label>
+      </p>
       <table>
         <thead><tr><th>ID</th><th>Name</th><th>Status</th><th>Next milestone</th><th>Repo</th><th>Action</th></tr></thead>
         <tbody id="projects"></tbody>
