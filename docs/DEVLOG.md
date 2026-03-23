@@ -50,6 +50,10 @@
 - Improved project detail panel to show structured timeline sections (status changes, notifications, runs) instead of raw JSON.
 - Added optional `repo_url` field to project model/registry.
 - Added GitHub quick-link button per project row when `repo_url` is present.
+- Added `Request Repo` button for projects without `repo_url`.
+- Added repo request API + log endpoint:
+  - `POST /projects/{id}/repo-request`
+  - `GET /logs/repo-requests`
 
 ### Automation schedules
 - Scheduled automation jobs:

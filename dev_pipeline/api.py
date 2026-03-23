@@ -6,10 +6,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .email_utils import send_email
-from .logs_api import get_notifications, get_runs, get_status_audit
+from .logs_api import get_notifications, get_repo_requests, get_runs, get_status_audit
 from .milestones import detect_and_notify
 from .project_detail import build_project_timeline
 from .registry import get_project, load_registry, set_project_status
+from .repo_requests import submit_repo_request
 from .sweeper import run_sweep
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +29,10 @@ class StatusPatch(BaseModel):
 
 class EmailTestBody(BaseModel):
     to: str | None = None
+
+
+class RepoRequestBody(BaseModel):
+    source: str = 'webui'
 
 
 @app.get("/")
@@ -98,6 +103,20 @@ def logs_status_audit(limit: int = 50):
 @app.get("/logs/notifications")
 def logs_notifications(limit: int = 50):
     return get_notifications(limit=limit)
+
+
+@app.get('/logs/repo-requests')
+def logs_repo_requests(limit: int = 50):
+    return get_repo_requests(limit=limit)
+
+
+@app.post('/projects/{project_id}/repo-request')
+def project_repo_request(project_id: str, body: RepoRequestBody):
+    try:
+        rec = submit_repo_request(project_id, source=body.source)
+        return {'ok': True, 'request': rec}
+    except KeyError:
+        raise HTTPException(status_code=404, detail='project not found')
 
 
 @app.post('/projects/{project_id}/email-test')

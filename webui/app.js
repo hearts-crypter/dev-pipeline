@@ -24,7 +24,7 @@ async function refreshProjects() {
     const tr = document.createElement('tr');
     const repoCell = p.repo_url
       ? `<a href="${p.repo_url}" target="_blank" rel="noopener noreferrer"><button>GitHub</button></a>`
-      : '<span class="muted">—</span>';
+      : `<button id="repoReq-${p.id}">Request Repo</button>`;
 
     tr.innerHTML = `
       <td>${p.id}</td>
@@ -51,6 +51,19 @@ async function refreshProjects() {
       await refreshAll();
     };
 
+    const reqBtn = document.getElementById(`repoReq-${p.id}`);
+    if (reqBtn) {
+      reqBtn.onclick = async () => {
+        const out = await fetch(`/projects/${p.id}/repo-request`, {
+          method: 'POST',
+          headers: {'content-type':'application/json'},
+          body: JSON.stringify({source: 'webui'})
+        }).then(r => r.json());
+        document.getElementById('controlStatus').textContent = 'Repo request queued: ' + JSON.stringify(out);
+        await refreshAll();
+      };
+    }
+
     const opt = document.createElement('option');
     opt.value = p.id;
     opt.textContent = `${p.name} (${p.id})`;
@@ -66,6 +79,11 @@ async function refreshRuns() {
 async function refreshNotifications() {
   const items = await jget('/logs/notifications?limit=20');
   document.getElementById('notifications').textContent = JSON.stringify(items, null, 2);
+}
+
+async function refreshRepoRequests() {
+  const items = await jget('/logs/repo-requests?limit=20');
+  document.getElementById('repoRequests').textContent = JSON.stringify(items, null, 2);
 }
 
 function fmtList(title, items, mapFn) {
@@ -94,7 +112,7 @@ async function refreshProjectDetail() {
 }
 
 async function refreshAll() {
-  await Promise.all([refreshProjects(), refreshRuns(), refreshNotifications()]);
+  await Promise.all([refreshProjects(), refreshRuns(), refreshNotifications(), refreshRepoRequests()]);
   await refreshProjectDetail();
 }
 

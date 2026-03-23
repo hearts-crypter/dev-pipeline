@@ -7,7 +7,8 @@ projects:
   spec_doc: /home/ahjc/.openclaw/workspace/projects/paper-digest/docs/PRD.md
   roadmap_doc: /home/ahjc/.openclaw/workspace/projects/paper-digest/docs/ROADMAP.md
   next_milestone: Phase 1 backend complete
-  last_progress_at: '2026-03-23T18:25:13+00:00'
+  last_progress_at: '2026-03-23T18:55:26+00:00'
   owner_notify_email: dev@ahjc.me
   notes: Grounded paper summarization + email delivery
+  webui_url: null
   repo_url: null
