@@ -11,6 +11,7 @@ from pathlib import Path
 class AutoDevResult:
     changed: bool
     summary: str
+    completed_tasks: list[str] | None = None
 
 
 def _now_utc() -> str:
@@ -108,28 +109,41 @@ def _paper_digest_handler(repo: Path, task: str) -> tuple[bool, str]:
     return (False, "No handler for task yet")
 
 
-def run_autodev_tick(project_id: str, repo_path: str) -> AutoDevResult:
+def run_autodev_tick(project_id: str, repo_path: str, max_tasks: int = 3) -> AutoDevResult:
     repo = Path(repo_path)
     roadmap = repo / "docs" / "ROADMAP.md"
     devlog = repo / "docs" / "DEVLOG.md"
     if not roadmap.exists():
-        return AutoDevResult(False, "no roadmap found")
+        return AutoDevResult(False, "no roadmap found", [])
 
     unchecked = _parse_unchecked_tasks(roadmap)
     if not unchecked:
-        return AutoDevResult(False, "no unchecked tasks")
+        return AutoDevResult(False, "no unchecked tasks", [])
 
-    next_task = unchecked[0]
-    if project_id == "paper-digest":
-        ok, summary = _paper_digest_handler(repo, next_task)
-        if not ok:
-            return AutoDevResult(False, f"autodev skipped: {summary} (task: {next_task})")
+    if project_id != "paper-digest":
+        return AutoDevResult(False, "no project-specific autodev handler", [])
 
-        _check_task(roadmap, next_task)
-        if devlog.exists():
-            _append_devlog(devlog, f"Autodev completed task: {next_task} — {summary}")
-        committed = _commit_all(repo, f"Autodev: complete roadmap task '{next_task}'")
-        suffix = "and committed" if committed else "(no new commit needed)"
-        return AutoDevResult(True, f"completed '{next_task}' {suffix}")
+    completed: list[str] = []
+    blocked: list[str] = []
 
-    return AutoDevResult(False, "no project-specific autodev handler")
+    for task in unchecked:
+        if len(completed) >= max_tasks:
+            break
+        ok, summary = _paper_digest_handler(repo, task)
+        if ok:
+            _check_task(roadmap, task)
+            if devlog.exists():
+                _append_devlog(devlog, f"Autodev completed task: {task} — {summary}")
+            completed.append(task)
+        else:
+            blocked.append(f"{task} ({summary})")
+
+    if not completed:
+        return AutoDevResult(False, f"autodev skipped: {blocked[0] if blocked else 'no actionable tasks'}", [])
+
+    committed = _commit_all(repo, f"Autodev: complete {len(completed)} roadmap task(s): " + ", ".join(completed[:3]))
+    suffix = "and committed" if committed else "(no new commit needed)"
+    note = f"completed {len(completed)} task(s) {suffix}"
+    if blocked:
+        note += f"; blocked on: {blocked[0]}"
+    return AutoDevResult(True, note, completed)
