@@ -128,6 +128,12 @@ document.getElementById('runNotify').onclick = async () => {
   await refreshAll();
 };
 
+document.getElementById('runRepoProc').onclick = async () => {
+  const out = await fetch('/runs/process-repo-requests', {method: 'POST'}).then(r => r.json());
+  document.getElementById('controlStatus').textContent = 'Repo processing: ' + JSON.stringify(out);
+  await refreshAll();
+};
+
 document.getElementById('loadDetail').onclick = async () => {
   await refreshProjectDetail();
 };
