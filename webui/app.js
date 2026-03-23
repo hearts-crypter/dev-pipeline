@@ -61,10 +61,13 @@ async function refreshProjects() {
       }
     }
 
+    const lockText = p.lock_mode ? `${p.lock_mode}:${p.lock_owner || 'n/a'}` : 'free';
+
     tr.innerHTML = `
       <td>${p.id}</td>
       <td>${p.name}</td>
       <td>${statusBadge(p.status)}</td>
+      <td>${lockText}</td>
       <td>${p.next_milestone || ''}</td>
       <td>${repoCell}</td>
       <td>
@@ -72,6 +75,8 @@ async function refreshProjects() {
           <option>active</option><option>paused</option><option>blocked</option><option>stopped</option><option>finished</option>
         </select>
         <button id="btn-${p.id}">Set</button>
+        <button id="focusOn-${p.id}">Focus</button>
+        <button id="focusOff-${p.id}">Unfocus</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -132,6 +137,26 @@ async function refreshProjects() {
         await refreshAll();
       };
     }
+
+    const onBtn = document.getElementById(`focusOn-${p.id}`);
+    onBtn.onclick = async () => {
+      const out = await fetch(`/projects/${p.id}/focus-start`, {
+        method: 'POST', headers: {'content-type':'application/json'},
+        body: JSON.stringify({owner: 'webui', ttl_minutes: 120})
+      }).then(r => r.json());
+      setToast(out.ok ? `🔒 Focus lock enabled for ${p.name}` : `❌ Focus lock failed: ${JSON.stringify(out)}`, out.ok ? 'ok' : 'err');
+      await refreshAll();
+    };
+
+    const offBtn = document.getElementById(`focusOff-${p.id}`);
+    offBtn.onclick = async () => {
+      const out = await fetch(`/projects/${p.id}/focus-stop`, {
+        method: 'POST', headers: {'content-type':'application/json'},
+        body: JSON.stringify({owner: 'webui', force: true})
+      }).then(r => r.json());
+      setToast(out.ok ? `🔓 Focus lock released for ${p.name}` : `❌ Unfocus failed: ${JSON.stringify(out)}`, out.ok ? 'ok' : 'err');
+      await refreshAll();
+    };
 
     const opt = document.createElement('option');
     opt.value = p.id;

@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .email_utils import send_email
+from .locks import acquire_lock, release_lock
 from .logs_api import get_notifications, get_publish_requests, get_repo_requests, get_runs, get_status_audit
 from .milestones import detect_and_notify
 from .project_detail import build_project_timeline
@@ -41,6 +42,12 @@ class RepoRequestBody(BaseModel):
 class RepoVisibilityBody(BaseModel):
     visibility: str = 'public'
     source: str = 'webui'
+
+
+class LockBody(BaseModel):
+    owner: str = 'webui'
+    ttl_minutes: int = 90
+    force: bool = False
 
 
 @app.get("/")
@@ -149,6 +156,24 @@ def project_publish_request(project_id: str, body: RepoRequestBody):
         queued = submit_publish_request(project_id, source=body.source)
         result = publish_project_now(project_id, source=body.source)
         return {'ok': result.get('status') == 'fulfilled', 'queued': queued, 'result': result}
+    except KeyError:
+        raise HTTPException(status_code=404, detail='project not found')
+
+
+@app.post('/projects/{project_id}/focus-start')
+def project_focus_start(project_id: str, body: LockBody):
+    try:
+        res = acquire_lock(project_id, mode='manual', owner=body.owner, ttl_minutes=body.ttl_minutes, force=body.force)
+        return {'ok': bool(res.get('ok')), 'lock': res}
+    except KeyError:
+        raise HTTPException(status_code=404, detail='project not found')
+
+
+@app.post('/projects/{project_id}/focus-stop')
+def project_focus_stop(project_id: str, body: LockBody):
+    try:
+        res = release_lock(project_id, owner=body.owner, force=body.force)
+        return {'ok': bool(res.get('ok')), 'lock': res}
     except KeyError:
         raise HTTPException(status_code=404, detail='project not found')
 

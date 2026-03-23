@@ -22,6 +22,9 @@ class Project(BaseModel):
     webui_url: str | None = None
     repo_url: str | None = None
     repo_private: bool | None = None
+    lock_mode: str | None = None  # manual|auto
+    lock_owner: str | None = None
+    lock_until: str | None = None
 
 
 class Registry(BaseModel):
