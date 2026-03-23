@@ -31,6 +31,8 @@ Phase 1 implementation in progress.
   - `PATCH /projects/{id}/status`
   - `POST /runs/sweep`
   - `POST /runs/milestones-notify`
+  - `GET /projects/{id}/timeline`
+  - `POST /projects/{id}/email-test`
   - `GET /logs/runs`
   - `GET /logs/status-audit`
   - `GET /logs/notifications`

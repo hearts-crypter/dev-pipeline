@@ -39,8 +39,12 @@
   - `GET /logs/runs`
   - `GET /logs/status-audit`
   - `GET /logs/notifications`
+- Added project detail/timeline + test email API:
+  - `GET /projects/{id}/timeline`
+  - `POST /projects/{id}/email-test`
 - API root (`/`) now serves the web UI.
 - Added `dev_pipeline/logs_api.py` helper for JSONL log retrieval.
+- Default API launcher now serves on `0.0.0.0:20001`.
 
 ### Automation schedules
 - Scheduled automation jobs:
