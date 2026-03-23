@@ -1,13 +1,18 @@
 projects:
-  - id: paper-digest
-    name: Paper Digest
-    repo_path: /home/ahjc/.openclaw/workspace/projects/paper-digest
+  - id: sample-project
+    name: Sample Project
+    repo_path: /path/to/projects/sample-project
     status: active
-    priority: high
-    spec_doc: /home/ahjc/.openclaw/workspace/projects/paper-digest/docs/PRD.md
-    roadmap_doc: /home/ahjc/.openclaw/workspace/projects/paper-digest/docs/ROADMAP.md
-    next_milestone: "Phase 1 backend complete"
-    last_progress_at: "2026-03-23T18:07:00Z"
-    owner_notify_email: dev@ahjc.me
-    notes: "Grounded paper summarization + email delivery"
+    priority: medium
+    spec_doc: /path/to/projects/sample-project/docs/SPEC.md
+    roadmap_doc: /path/to/projects/sample-project/docs/ROADMAP.md
+    next_milestone: "Define MVP scope"
+    last_progress_at: null
+    owner_notify_email: dev@example.com
+    notes: "Example registry entry"
+    webui_url: null
     repo_url: null
+    repo_private: null
+    lock_mode: null
+    lock_owner: null
+    lock_until: null

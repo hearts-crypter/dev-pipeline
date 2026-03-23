@@ -77,6 +77,12 @@
 - UI now shows `Request GitHub Publish` for projects without `repo_url`.
 - Switched publish behavior to immediate case-by-case execution from UI/API click; removed recurring publish-request cron.
 
+### Registry hygiene / secret-safe publishing
+- Converted tracked registry files to example-only content.
+- Added gitignored local runtime registry: `registry/projects.local.yaml`.
+- Registry loader now prefers local registry file when present.
+- Goal: avoid publishing real project inventories/runtime state to GitHub.
+
 ### Concurrency guardrails (manual vs automatic development)
 - Added project lock module: `dev_pipeline/locks.py`.
 - Added API endpoints:

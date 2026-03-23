@@ -3,3 +3,4 @@ __pycache__/
 .venv/
 logs/*.jsonl
 logs/*.json
+registry/projects.local.yaml
