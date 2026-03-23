@@ -37,6 +37,7 @@ Phase 1 implementation in progress.
   - `GET /logs/status-audit`
   - `GET /logs/notifications`
 - Built-in Web UI served from `/` (files in `webui/`) for status viewing/updates and run controls.
+- Project records support optional `repo_url` for GitHub/open-repo quick links.
 
 ## Quick start
 ```bash

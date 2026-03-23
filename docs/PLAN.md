@@ -15,6 +15,7 @@ Each project record:
 - `next_milestone`
 - `last_progress_at`
 - `owner_notify_email` (default `dev@ahjc.me`)
+- `repo_url` (optional; used by Web UI quick-link button)
 - `notes`
 
 ## 2) Status change contract

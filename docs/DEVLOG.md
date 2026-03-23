@@ -46,6 +46,11 @@
 - Added `dev_pipeline/logs_api.py` helper for JSONL log retrieval.
 - Default API launcher now serves on `0.0.0.0:20001`.
 
+### UI refinement block
+- Improved project detail panel to show structured timeline sections (status changes, notifications, runs) instead of raw JSON.
+- Added optional `repo_url` field to project model/registry.
+- Added GitHub quick-link button per project row when `repo_url` is present.
+
 ### Automation schedules
 - Scheduled automation jobs:
   - `dev-pipeline-sweep` every 30m
