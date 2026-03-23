@@ -22,11 +22,16 @@ async function refreshProjects() {
 
   for (const p of _projects) {
     const tr = document.createElement('tr');
+    const repoCell = p.repo_url
+      ? `<a href="${p.repo_url}" target="_blank" rel="noopener noreferrer"><button>GitHub</button></a>`
+      : '<span class="muted">—</span>';
+
     tr.innerHTML = `
       <td>${p.id}</td>
       <td>${p.name}</td>
       <td>${statusBadge(p.status)}</td>
       <td>${p.next_milestone || ''}</td>
+      <td>${repoCell}</td>
       <td>
         <select id="sel-${p.id}">
           <option>active</option><option>paused</option><option>blocked</option><option>stopped</option><option>finished</option>
@@ -63,11 +68,29 @@ async function refreshNotifications() {
   document.getElementById('notifications').textContent = JSON.stringify(items, null, 2);
 }
 
+function fmtList(title, items, mapFn) {
+  if (!items || !items.length) return `<p><b>${title}:</b> none</p>`;
+  const lis = items.slice(-8).reverse().map(mapFn).join('');
+  return `<p><b>${title}:</b></p><ul>${lis}</ul>`;
+}
+
 async function refreshProjectDetail() {
   const sel = document.getElementById('detailProject');
   if (!sel.value) return;
   const detail = await jget(`/projects/${sel.value}/timeline?limit=50`);
-  document.getElementById('projectDetail').textContent = JSON.stringify(detail, null, 2);
+  const p = detail.project;
+  const t = detail.timeline;
+
+  const html = `
+    <p><b>${p.name}</b> (${p.id})</p>
+    <p>Status: ${statusBadge(p.status)} | Priority: ${p.priority}</p>
+    <p>Next milestone: ${p.next_milestone || 'unspecified'}</p>
+    <p>Notify: ${p.owner_notify_email || 'n/a'}</p>
+    ${fmtList('Status changes', t.status_events, e => `<li>${e.changed_at || ''}: ${e.old_status} → ${e.new_status}</li>`) }
+    ${fmtList('Notifications', t.notifications, n => `<li>${n.sent_at || ''}: ${n.status} (${(n.milestones||[]).join(', ') || 'n/a'})</li>`) }
+    ${fmtList('Runs', t.runs, r => `<li>${r.run_at || ''}: active=${r.active_projects}, actions=${(r.actions||[]).length}</li>`) }
+  `;
+  document.getElementById('projectDetail').innerHTML = html;
 }
 
 async function refreshAll() {
