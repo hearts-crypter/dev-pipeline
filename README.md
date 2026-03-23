@@ -20,7 +20,8 @@ Long-term autonomous development pipeline for managed projects.
 Phase 1 implementation in progress.
 
 ## Phase 1 implemented pieces
-- Canonical registry file in `registry/projects.yaml`
+- Canonical registry template in `registry/projects.yaml`
+- Local runtime registry in `registry/projects.local.yaml` (gitignored; preferred when present)
 - Registry read/write + status-change audit logger
 - Sweep runner (`scripts/run_sweep.py`) that inspects active projects and logs runs
 - Milestone notifier (`scripts/milestone_notify.py`) that sends email on newly completed roadmap phases
