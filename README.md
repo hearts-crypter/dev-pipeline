@@ -35,6 +35,8 @@ Phase 1 implementation in progress.
   - `POST /projects/{id}/email-test`
   - `POST /projects/{id}/repo-request` (legacy/local prep)
   - `POST /projects/{id}/publish-request` (request GitHub publication)
+  - `POST /projects/{id}/focus-start`
+  - `POST /projects/{id}/focus-stop`
   - `POST /runs/process-repo-requests`
   - `POST /runs/process-publish-requests`
   - `GET /logs/runs`
@@ -43,6 +45,7 @@ Phase 1 implementation in progress.
   - `GET /logs/repo-requests`
   - `GET /logs/publish-requests`
 - Built-in Web UI served from `/` (files in `webui/`) for status viewing/updates and run controls.
+- Concurrency safety via per-project focus locks (manual immediate work preempts auto sweeps).
 - Project records support optional `repo_url` for GitHub/open-repo quick links.
 - Local git repo initialization is automatic during active-project sweeps.
 - GitHub publication is request-driven and processed immediately on button click (`publish-request` endpoint), not via recurring cron.

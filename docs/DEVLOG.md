@@ -77,6 +77,14 @@
 - UI now shows `Request GitHub Publish` for projects without `repo_url`.
 - Switched publish behavior to immediate case-by-case execution from UI/API click; removed recurring publish-request cron.
 
+### Concurrency guardrails (manual vs automatic development)
+- Added project lock module: `dev_pipeline/locks.py`.
+- Added API endpoints:
+  - `POST /projects/{id}/focus-start`
+  - `POST /projects/{id}/focus-stop`
+- Added Web UI controls per project: `Focus` and `Unfocus`.
+- Sweeper now skips projects under active manual lock and acquires a short auto lock while processing active projects to avoid overlap.
+
 ### Automation schedules
 - Scheduled automation jobs:
   - `dev-pipeline-sweep` every 30m

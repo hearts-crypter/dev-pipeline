@@ -13,6 +13,9 @@ projects:
   webui_url: null
   repo_url: null
   repo_private: null
+  lock_mode: null
+  lock_owner: null
+  lock_until: null
 - id: dev-pipeline
   name: Dev Pipeline
   repo_path: /home/ahjc/.openclaw/workspace/projects/dev-pipeline
@@ -21,12 +24,15 @@ projects:
   spec_doc: /home/ahjc/.openclaw/workspace/projects/dev-pipeline/docs/PLAN.md
   roadmap_doc: /home/ahjc/.openclaw/workspace/projects/dev-pipeline/docs/PLAN.md
   next_milestone: Implement GitHub publish execution workflow
-  last_progress_at: '2026-03-23T19:25:26+00:00'
+  last_progress_at: '2026-03-23T19:39:29+00:00'
   owner_notify_email: dev@ahjc.me
   notes: Autonomous development orchestrator and project control plane
   webui_url: http://127.0.0.1:20001
   repo_url: https://github.com/hearts-crypter/dev-pipeline
   repo_private: false
+  lock_mode: null
+  lock_owner: null
+  lock_until: null
 - id: bestbuy
   name: Bestbuy
   repo_path: /home/ahjc/.openclaw/workspace/projects/bestbuy
@@ -41,6 +47,9 @@ projects:
   webui_url: null
   repo_url: null
   repo_private: null
+  lock_mode: null
+  lock_owner: null
+  lock_until: null
 - id: discord-bot
   name: Discord Bot
   repo_path: /home/ahjc/.openclaw/workspace/projects/discord_bot
@@ -55,6 +64,9 @@ projects:
   webui_url: null
   repo_url: null
   repo_private: null
+  lock_mode: null
+  lock_owner: null
+  lock_until: null
 - id: homelab-status-ui
   name: Homelab Status UI
   repo_path: /home/ahjc/.openclaw/workspace/projects/homelab-status-ui
@@ -69,6 +81,9 @@ projects:
   webui_url: null
   repo_url: null
   repo_private: null
+  lock_mode: null
+  lock_owner: null
+  lock_until: null
 - id: web-access-tool
   name: Web Access Tool
   repo_path: /home/ahjc/.openclaw/workspace/projects/web-access-tool
@@ -83,3 +98,6 @@ projects:
   webui_url: null
   repo_url: https://github.com/hearts-crypter/web-access-tool
   repo_private: false
+  lock_mode: null
+  lock_owner: null
+  lock_until: null

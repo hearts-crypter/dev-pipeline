@@ -3,6 +3,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .locks import acquire_lock, lock_status, release_lock
 from .paths import LOG_DIR, RUN_LOG_PATH
 from .registry import load_registry, save_registry
 from .repo_manager import ensure_repo_initialized
@@ -28,6 +29,26 @@ def run_sweep() -> dict:
             continue
         run["active_projects"] += 1
 
+        ls = lock_status(project)
+        if ls['locked'] and ls['lock_mode'] == 'manual':
+            run['actions'].append({
+                'project_id': project.id,
+                'result': 'skipped',
+                'reason': 'manual_lock_active',
+                'lock': ls,
+            })
+            continue
+
+        lock = acquire_lock(project.id, mode='auto', owner='sweeper', ttl_minutes=25)
+        if not lock.get('ok'):
+            run['actions'].append({
+                'project_id': project.id,
+                'result': 'skipped',
+                'reason': 'could_not_acquire_lock',
+                'lock': lock,
+            })
+            continue
+
         repo = Path(project.repo_path)
         if not repo.exists():
             run["actions"].append(
@@ -37,6 +58,7 @@ def run_sweep() -> dict:
                     "reason": f"repo_path missing: {project.repo_path}",
                 }
             )
+            release_lock(project.id, owner='sweeper', force=True)
             continue
 
         local_ok, local_msg = ensure_repo_initialized(repo)
@@ -47,9 +69,11 @@ def run_sweep() -> dict:
             "local_repo": {"ok": local_ok, "message": local_msg},
             "git_status": git_status,
             "next_milestone": project.next_milestone,
+            "lock": lock,
         }
         run["actions"].append(action)
         project.last_progress_at = _utc_now_iso()
+        release_lock(project.id, owner='sweeper', force=True)
 
     save_registry(reg)
     with RUN_LOG_PATH.open("a", encoding="utf-8") as f:
