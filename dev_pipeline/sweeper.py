@@ -3,6 +3,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .autodev import run_autodev_tick
 from .locks import acquire_lock, lock_status, release_lock
 from .paths import LOG_DIR, RUN_LOG_PATH
 from .registry import load_registry, save_registry
@@ -63,11 +64,14 @@ def run_sweep() -> dict:
 
         local_ok, local_msg = ensure_repo_initialized(repo)
         git_status = _safe_git_status(repo)
+        autodev = run_autodev_tick(project.id, project.repo_path)
+
         action = {
             "project_id": project.id,
             "result": "inspected",
             "local_repo": {"ok": local_ok, "message": local_msg},
             "git_status": git_status,
+            "autodev": {"changed": autodev.changed, "summary": autodev.summary},
             "next_milestone": project.next_milestone,
             "lock": lock,
         }

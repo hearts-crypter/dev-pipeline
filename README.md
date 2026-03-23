@@ -23,7 +23,7 @@ Phase 1 implementation in progress.
 - Canonical registry template in `registry/projects.yaml`
 - Local runtime registry in `registry/projects.local.yaml` (gitignored; preferred when present)
 - Registry read/write + status-change audit logger
-- Sweep runner (`scripts/run_sweep.py`) that inspects active projects and logs runs
+- Sweep runner (`scripts/run_sweep.py`) that inspects active projects, performs one bounded autodev task per active project, and logs runs
 - Milestone notifier (`scripts/milestone_notify.py`) that sends email on newly completed roadmap phases
 - Newsletter section renderer (`scripts/render_newsletter_section.py`) for project status injection
 - FastAPI service (`dev_pipeline/api.py`) with:
