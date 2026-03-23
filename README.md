@@ -17,4 +17,24 @@ Long-term autonomous development pipeline for managed projects.
 - `blocked` — active intent but externally blocked
 
 ## Current phase
-Planning and scaffolding.
+Phase 1 implementation in progress.
+
+## Phase 1 implemented pieces
+- Canonical registry file in `registry/projects.yaml`
+- Registry read/write + status-change audit logger
+- Sweep runner (`scripts/run_sweep.py`) that inspects active projects and logs runs
+- FastAPI service (`dev_pipeline/api.py`) with:
+  - `GET /projects`
+  - `GET /projects/{id}`
+  - `PATCH /projects/{id}/status`
+  - `POST /runs/sweep`
+
+## Quick start
+```bash
+cd projects/dev-pipeline
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python scripts/run_sweep.py
+bash scripts/run_api.sh
+```
