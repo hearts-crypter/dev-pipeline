@@ -157,6 +157,76 @@ def publish_project_now(project_id: str, source: str = 'webui', visibility: str 
     return rec
 
 
+def _repo_slug_from_url(url: str | None) -> str | None:
+    if not url:
+        return None
+    m = re.match(r'^https?://github\.com/([^/]+/[^/]+?)(?:\.git)?/?$', url.strip())
+    if m:
+        return m.group(1)
+    return None
+
+
+def get_repo_privacy(repo_url: str | None) -> bool | None:
+    slug = _repo_slug_from_url(repo_url)
+    if not slug:
+        return None
+    ok, out = _gh(['repo', 'view', slug, '--json', 'isPrivate'])
+    if not ok:
+        return None
+    try:
+        data = json.loads(out)
+        return bool(data.get('isPrivate'))
+    except Exception:
+        return None
+
+
+def set_repo_visibility(project_id: str, visibility: str = 'public', source: str = 'webui') -> dict:
+    if visibility not in {'public', 'private'}:
+        return {'status': 'failed', 'error': f'invalid visibility: {visibility}'}
+
+    reg, p = get_project(project_id)
+    repo_path = Path(p.repo_path)
+    detected = detect_repo_url(repo_path) or p.repo_url
+    if not detected:
+        rec = {
+            'requested_at': _now_iso(), 'processed_at': _now_iso(), 'project_id': p.id,
+            'project_name': p.name, 'source': source, 'status': 'failed',
+            'error': 'no GitHub repo URL configured/detected',
+        }
+        _append_publish_log(rec)
+        return rec
+
+    slug = _repo_slug_from_url(detected)
+    if not slug:
+        rec = {
+            'requested_at': _now_iso(), 'processed_at': _now_iso(), 'project_id': p.id,
+            'project_name': p.name, 'source': source, 'status': 'failed',
+            'error': f'unsupported repo URL: {detected}',
+        }
+        _append_publish_log(rec)
+        return rec
+
+    ok, out = _gh(['repo', 'edit', slug, '--visibility', visibility])
+    if not ok:
+        rec = {
+            'requested_at': _now_iso(), 'processed_at': _now_iso(), 'project_id': p.id,
+            'project_name': p.name, 'source': source, 'status': 'failed', 'error': out,
+        }
+        _append_publish_log(rec)
+        return rec
+
+    p.repo_url = detected
+    save_registry(reg)
+    rec = {
+        'requested_at': _now_iso(), 'processed_at': _now_iso(), 'project_id': p.id,
+        'project_name': p.name, 'source': source, 'status': 'fulfilled',
+        'result': f'repo visibility set to {visibility}', 'repo_url': detected,
+        'is_private': get_repo_privacy(detected),
+    }
+    _append_publish_log(rec)
+    return rec
+
+
 def process_publish_requests(limit: int = 20) -> dict:
     # Backward-compat entry point; now publish is intended to be immediate.
     return {'processed': 0, 'updated': [], 'note': 'publish is now instant via /projects/{id}/publish-request'}
