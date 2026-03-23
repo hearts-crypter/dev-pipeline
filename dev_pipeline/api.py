@@ -9,7 +9,7 @@ from .email_utils import send_email
 from .logs_api import get_notifications, get_publish_requests, get_repo_requests, get_runs, get_status_audit
 from .milestones import detect_and_notify
 from .project_detail import build_project_timeline
-from .publish_manager import process_publish_requests
+from .publish_manager import process_publish_requests, publish_project_now, sync_all_repo_urls
 from .publish_requests import submit_publish_request
 from .registry import get_project, load_registry, set_project_status
 from .repo_manager import process_repo_requests
@@ -52,6 +52,7 @@ def health() -> dict[str, str]:
 
 @app.get("/projects")
 def list_projects():
+    sync_all_repo_urls()
     return load_registry().model_dump(mode="json")
 
 
@@ -140,8 +141,9 @@ def run_process_publish_requests(limit: int = 20):
 @app.post('/projects/{project_id}/publish-request')
 def project_publish_request(project_id: str, body: RepoRequestBody):
     try:
-        rec = submit_publish_request(project_id, source=body.source)
-        return {'ok': True, 'request': rec}
+        queued = submit_publish_request(project_id, source=body.source)
+        result = publish_project_now(project_id, source=body.source)
+        return {'ok': result.get('status') == 'fulfilled', 'queued': queued, 'result': result}
     except KeyError:
         raise HTTPException(status_code=404, detail='project not found')
 

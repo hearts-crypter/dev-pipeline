@@ -45,7 +45,7 @@ Phase 1 implementation in progress.
 - Built-in Web UI served from `/` (files in `webui/`) for status viewing/updates and run controls.
 - Project records support optional `repo_url` for GitHub/open-repo quick links.
 - Local git repo initialization is automatic during active-project sweeps.
-- GitHub publication is request-driven via publish-request workflow.
+- GitHub publication is request-driven and processed immediately on button click (`publish-request` endpoint), not via recurring cron.
 
 ## Quick start
 ```bash
