@@ -55,6 +55,15 @@
   - `POST /projects/{id}/repo-request`
   - `GET /logs/repo-requests`
 
+### Repo request processing block
+- Added repo request processor (`dev_pipeline/repo_manager.py`) to handle pending requests.
+- Added manual runner script:
+  - `scripts/process_repo_requests.py`
+- Added API trigger endpoint:
+  - `POST /runs/process-repo-requests`
+- Added UI control button: `Process repo requests`.
+- Added recurring cron job `dev-pipeline-repo-request-processor` (every 30 minutes).
+
 ### Automation schedules
 - Scheduled automation jobs:
   - `dev-pipeline-sweep` every 30m

@@ -10,6 +10,7 @@ from .logs_api import get_notifications, get_repo_requests, get_runs, get_status
 from .milestones import detect_and_notify
 from .project_detail import build_project_timeline
 from .registry import get_project, load_registry, set_project_status
+from .repo_manager import process_repo_requests
 from .repo_requests import submit_repo_request
 from .sweeper import run_sweep
 
@@ -117,6 +118,11 @@ def project_repo_request(project_id: str, body: RepoRequestBody):
         return {'ok': True, 'request': rec}
     except KeyError:
         raise HTTPException(status_code=404, detail='project not found')
+
+
+@app.post('/runs/process-repo-requests')
+def run_process_repo_requests(limit: int = 20):
+    return process_repo_requests(limit=limit)
 
 
 @app.post('/projects/{project_id}/email-test')

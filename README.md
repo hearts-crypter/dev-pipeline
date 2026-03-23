@@ -34,12 +34,14 @@ Phase 1 implementation in progress.
   - `GET /projects/{id}/timeline`
   - `POST /projects/{id}/email-test`
   - `POST /projects/{id}/repo-request`
+  - `POST /runs/process-repo-requests`
   - `GET /logs/runs`
   - `GET /logs/status-audit`
   - `GET /logs/notifications`
   - `GET /logs/repo-requests`
 - Built-in Web UI served from `/` (files in `webui/`) for status viewing/updates and run controls.
 - Project records support optional `repo_url` for GitHub/open-repo quick links.
+- Repo request workflow supports queueing + processing for projects without a configured remote repo.
 
 ## Quick start
 ```bash
