@@ -116,9 +116,27 @@ def publish_project_now(project_id: str, source: str = 'webui', visibility: str 
         _append_publish_log(rec)
         return rec
 
+    # Ensure git credential helper is wired for gh before create/push.
+    _gh(['auth', 'setup-git'])
+
     vis_flag = '--private' if visibility != 'public' else '--public'
     ok_create, out_create = _gh(['repo', 'create', p.id, vis_flag, '--source', str(repo_path), '--push'])
     if not ok_create:
+        # If remote was still created/configured, treat as fulfilled-with-warning.
+        detected_after_fail = detect_repo_url(repo_path)
+        if detected_after_fail:
+            p.repo_url = detected_after_fail
+            save_registry(reg)
+            rec = {
+                'requested_at': _now_iso(), 'processed_at': _now_iso(), 'project_id': p.id, 'project_name': p.name,
+                'source': source, 'status': 'fulfilled',
+                'result': 'remote detected after partial publish attempt',
+                'warning': out_create,
+                'repo_url': detected_after_fail,
+            }
+            _append_publish_log(rec)
+            return rec
+
         rec = {
             'requested_at': _now_iso(), 'processed_at': _now_iso(), 'project_id': p.id, 'project_name': p.name,
             'source': source, 'status': 'failed', 'error': out_create,
