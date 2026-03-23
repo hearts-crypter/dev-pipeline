@@ -60,3 +60,7 @@ pip install -r requirements.txt
 python scripts/run_sweep.py
 bash scripts/run_api.sh
 ```
+
+## Helper tools
+- `scripts/devctl.py` — quick CLI for projects/sweep/lock/unlock/publish actions.
+- `scripts/repo_hygiene_audit.py` — scan tracked files for likely runtime/state artifacts that should be ignored or templated.
