@@ -83,6 +83,14 @@
 - Registry loader now prefers local registry file when present.
 - Goal: avoid publishing real project inventories/runtime state to GitHub.
 
+### Autonomous coding engine (bounded)
+- Added `dev_pipeline/autodev.py` and `scripts/autodev_tick.py`.
+- Sweep now executes one bounded autodev task per active unlocked project.
+- Initial project handler implemented for `paper-digest`:
+  - auto-verifies/completes foundational roadmap tasks
+  - can implement a baseline worker task for `Worker queue + job states`
+  - marks completed checklist item and commits in target project repo
+
 ### Concurrency guardrails (manual vs automatic development)
 - Added project lock module: `dev_pipeline/locks.py`.
 - Added API endpoints:
