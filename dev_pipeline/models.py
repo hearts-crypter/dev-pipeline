@@ -21,6 +21,7 @@ class Project(BaseModel):
     notes: str | None = None
     webui_url: str | None = None
     repo_url: str | None = None
+    repo_private: bool | None = None
 
 
 class Registry(BaseModel):

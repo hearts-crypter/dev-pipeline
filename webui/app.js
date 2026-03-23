@@ -50,9 +50,16 @@ async function refreshProjects() {
 
   for (const p of rows) {
     const tr = document.createElement('tr');
-    const repoCell = p.repo_url
-      ? `<a href="${p.repo_url}" target="_blank" rel="noopener noreferrer"><button>GitHub</button></a> <button id="visPub-${p.id}">Make Public</button>`
-      : `<button id="pubReq-${p.id}">Request GitHub Publish</button>`;
+    let repoCell = `<button id="pubReq-${p.id}">Request GitHub Publish</button>`;
+    if (p.repo_url) {
+      if (p.repo_private === false) {
+        repoCell = `<a href="${p.repo_url}" target="_blank" rel="noopener noreferrer"><button>GitHub</button></a> <span class="badge active">Public</span>`;
+      } else if (p.repo_private === true) {
+        repoCell = `<a href="${p.repo_url}" target="_blank" rel="noopener noreferrer"><button>GitHub</button></a> <button id="visPub-${p.id}">Make Public</button>`;
+      } else {
+        repoCell = `<a href="${p.repo_url}" target="_blank" rel="noopener noreferrer"><button>GitHub</button></a> <span class="muted">visibility unknown</span>`;
+      }
+    }
 
     tr.innerHTML = `
       <td>${p.id}</td>
