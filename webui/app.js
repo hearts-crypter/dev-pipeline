@@ -11,6 +11,26 @@ async function jget(path) {
 }
 
 let _projects = [];
+const STATUS_RANK = {active: 0, paused: 1, blocked: 2, stopped: 3, finished: 4};
+const PRIORITY_RANK = {high: 0, medium: 1, low: 2};
+
+function sortedAndFilteredProjects(items) {
+  const filter = document.getElementById('statusFilter')?.value || 'all';
+  const sortMode = document.getElementById('sortMode')?.value || 'status_then_name';
+
+  let out = [...items];
+  if (filter !== 'all') out = out.filter(p => p.status === filter);
+
+  if (sortMode === 'name') {
+    out.sort((a, b) => a.name.localeCompare(b.name));
+  } else if (sortMode === 'priority_then_name') {
+    out.sort((a, b) => (PRIORITY_RANK[a.priority] ?? 99) - (PRIORITY_RANK[b.priority] ?? 99) || a.name.localeCompare(b.name));
+  } else {
+    out.sort((a, b) => (STATUS_RANK[a.status] ?? 99) - (STATUS_RANK[b.status] ?? 99) || a.name.localeCompare(b.name));
+  }
+
+  return out;
+}
 
 async function refreshProjects() {
   const data = await jget('/projects');
@@ -20,7 +40,9 @@ async function refreshProjects() {
   tbody.innerHTML = '';
   detailSel.innerHTML = '';
 
-  for (const p of _projects) {
+  const rows = sortedAndFilteredProjects(_projects);
+
+  for (const p of rows) {
     const tr = document.createElement('tr');
     const repoCell = p.repo_url
       ? `<a href="${p.repo_url}" target="_blank" rel="noopener noreferrer"><button>GitHub</button></a>`
@@ -155,6 +177,9 @@ document.getElementById('sendTest').onclick = async () => {
   document.getElementById('controlStatus').textContent = 'Test email: ' + JSON.stringify(out);
   await refreshAll();
 };
+
+document.getElementById('statusFilter').onchange = () => refreshProjects();
+document.getElementById('sortMode').onchange = () => refreshProjects();
 
 refreshAll().catch(e => {
   document.getElementById('controlStatus').textContent = String(e);
