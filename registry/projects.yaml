@@ -12,7 +12,6 @@ projects:
   notes: Grounded paper summarization + email delivery
   webui_url: null
   repo_url: null
-
 - id: dev-pipeline
   name: Dev Pipeline
   repo_path: /home/ahjc/.openclaw/workspace/projects/dev-pipeline
@@ -25,12 +24,11 @@ projects:
   owner_notify_email: dev@ahjc.me
   notes: Autonomous development orchestrator and project control plane
   webui_url: http://127.0.0.1:20001
-  repo_url: null
-
+  repo_url: https://github.com/hearts-crypter/dev-pipeline
 - id: bestbuy
   name: Bestbuy
   repo_path: /home/ahjc/.openclaw/workspace/projects/bestbuy
-  status: paused
+  status: stopped
   priority: medium
   spec_doc: null
   roadmap_doc: null
@@ -40,7 +38,6 @@ projects:
   notes: Imported from projects directory
   webui_url: null
   repo_url: null
-
 - id: discord-bot
   name: Discord Bot
   repo_path: /home/ahjc/.openclaw/workspace/projects/discord_bot
@@ -54,7 +51,6 @@ projects:
   notes: Imported from projects directory
   webui_url: null
   repo_url: null
-
 - id: homelab-status-ui
   name: Homelab Status UI
   repo_path: /home/ahjc/.openclaw/workspace/projects/homelab-status-ui
@@ -68,7 +64,6 @@ projects:
   notes: Imported from projects directory
   webui_url: null
   repo_url: null
-
 - id: web-access-tool
   name: Web Access Tool
   repo_path: /home/ahjc/.openclaw/workspace/projects/web-access-tool
@@ -81,4 +76,4 @@ projects:
   owner_notify_email: dev@ahjc.me
   notes: Imported from projects directory
   webui_url: null
-  repo_url: null
+  repo_url: https://github.com/hearts-crypter/web-access-tool
