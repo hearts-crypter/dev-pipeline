@@ -1,0 +1,12 @@
+projects:
+  - id: paper-digest
+    name: Paper Digest
+    repo_path: /home/ahjc/.openclaw/workspace/projects/paper-digest
+    status: active
+    priority: high
+    spec_doc: /home/ahjc/.openclaw/workspace/projects/paper-digest/docs/PRD.md
+    roadmap_doc: /home/ahjc/.openclaw/workspace/projects/paper-digest/docs/ROADMAP.md
+    next_milestone: "Phase 1 backend complete"
+    last_progress_at: "2026-03-23T18:07:00Z"
+    owner_notify_email: dev@ahjc.me
+    notes: "Grounded paper summarization + email delivery"
