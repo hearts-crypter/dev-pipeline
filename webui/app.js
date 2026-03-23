@@ -1,5 +1,11 @@
 const API = '';
 
+function setToast(html, kind = 'muted') {
+  const el = document.getElementById('toast');
+  el.className = kind;
+  el.innerHTML = html;
+}
+
 function statusBadge(status) {
   return `<span class="badge ${status}">${status}</span>`;
 }
@@ -81,7 +87,19 @@ async function refreshProjects() {
           headers: {'content-type':'application/json'},
           body: JSON.stringify({source: 'webui'})
         }).then(r => r.json());
-        document.getElementById('controlStatus').textContent = 'Publish request queued: ' + JSON.stringify(out);
+
+        const result = out?.result || {};
+        const repoUrl = result.repo_url || out?.queued?.repo_url;
+        if (out?.ok && repoUrl) {
+          setToast(`✅ Published successfully: <a href="${repoUrl}" target="_blank" rel="noopener noreferrer">${repoUrl}</a>`, 'ok');
+        } else if (out?.ok) {
+          setToast('✅ Publish request succeeded.', 'ok');
+        } else {
+          const err = result.error || JSON.stringify(out);
+          setToast(`❌ Publish failed: ${err}`, 'err');
+        }
+
+        document.getElementById('controlStatus').textContent = 'Publish action: ' + JSON.stringify(out);
         await refreshAll();
       };
     }
@@ -178,4 +196,5 @@ document.getElementById('sortMode').onchange = () => refreshProjects();
 
 refreshAll().catch(e => {
   document.getElementById('controlStatus').textContent = String(e);
+  setToast(`❌ ${String(e)}`, 'err');
 });
