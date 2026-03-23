@@ -30,6 +30,19 @@
   - `dev_pipeline/newsletter.py`
   - `scripts/render_newsletter_section.py`
 - Extended API with `POST /runs/milestones-notify`.
+
+### Web UI + log APIs
+- Added minimal Web UI under `webui/`:
+  - `index.html`
+  - `app.js`
+- Added JSON log endpoints:
+  - `GET /logs/runs`
+  - `GET /logs/status-audit`
+  - `GET /logs/notifications`
+- API root (`/`) now serves the web UI.
+- Added `dev_pipeline/logs_api.py` helper for JSONL log retrieval.
+
+### Automation schedules
 - Scheduled automation jobs:
   - `dev-pipeline-sweep` every 30m
   - `dev-pipeline-milestone-notify` every 15m
