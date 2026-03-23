@@ -31,6 +31,10 @@ Phase 1 implementation in progress.
   - `PATCH /projects/{id}/status`
   - `POST /runs/sweep`
   - `POST /runs/milestones-notify`
+  - `GET /logs/runs`
+  - `GET /logs/status-audit`
+  - `GET /logs/notifications`
+- Built-in Web UI served from `/` (files in `webui/`) for status viewing/updates and run controls.
 
 ## Quick start
 ```bash
