@@ -75,6 +75,11 @@ def sync_all_repo_urls() -> int:
         if detected and p.repo_url != detected:
             p.repo_url = detected
             changed += 1
+
+        privacy = get_repo_privacy(p.repo_url)
+        if privacy is not None and p.repo_private != privacy:
+            p.repo_private = privacy
+            changed += 1
     if changed:
         save_registry(reg)
     return changed
@@ -108,6 +113,7 @@ def publish_project_now(project_id: str, source: str = 'webui', visibility: str 
     existing = detect_repo_url(repo_path) or p.repo_url
     if existing:
         p.repo_url = existing
+        p.repo_private = get_repo_privacy(existing)
         save_registry(reg)
         rec = {
             'requested_at': _now_iso(), 'processed_at': _now_iso(), 'project_id': p.id, 'project_name': p.name,
@@ -147,6 +153,7 @@ def publish_project_now(project_id: str, source: str = 'webui', visibility: str 
     detected = detect_repo_url(repo_path)
     if detected:
         p.repo_url = detected
+        p.repo_private = get_repo_privacy(detected)
         save_registry(reg)
 
     rec = {
@@ -217,11 +224,14 @@ def set_repo_visibility(project_id: str, visibility: str = 'public', source: str
 
     p.repo_url = detected
     save_registry(reg)
+    current_priv = get_repo_privacy(detected)
+    p.repo_private = current_priv
+    save_registry(reg)
     rec = {
         'requested_at': _now_iso(), 'processed_at': _now_iso(), 'project_id': p.id,
         'project_name': p.name, 'source': source, 'status': 'fulfilled',
         'result': f'repo visibility set to {visibility}', 'repo_url': detected,
-        'is_private': get_repo_privacy(detected),
+        'is_private': current_priv,
     }
     _append_publish_log(rec)
     return rec
