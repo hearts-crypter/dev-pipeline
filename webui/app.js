@@ -10,12 +10,17 @@ async function jget(path) {
   return r.json();
 }
 
+let _projects = [];
+
 async function refreshProjects() {
   const data = await jget('/projects');
+  _projects = data.projects || [];
   const tbody = document.getElementById('projects');
+  const detailSel = document.getElementById('detailProject');
   tbody.innerHTML = '';
+  detailSel.innerHTML = '';
 
-  for (const p of data.projects || []) {
+  for (const p of _projects) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${p.id}</td>
@@ -40,6 +45,11 @@ async function refreshProjects() {
       });
       await refreshAll();
     };
+
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = `${p.name} (${p.id})`;
+    detailSel.appendChild(opt);
   }
 }
 
@@ -53,8 +63,16 @@ async function refreshNotifications() {
   document.getElementById('notifications').textContent = JSON.stringify(items, null, 2);
 }
 
+async function refreshProjectDetail() {
+  const sel = document.getElementById('detailProject');
+  if (!sel.value) return;
+  const detail = await jget(`/projects/${sel.value}/timeline?limit=50`);
+  document.getElementById('projectDetail').textContent = JSON.stringify(detail, null, 2);
+}
+
 async function refreshAll() {
   await Promise.all([refreshProjects(), refreshRuns(), refreshNotifications()]);
+  await refreshProjectDetail();
 }
 
 document.getElementById('runSweep').onclick = async () => {
@@ -66,6 +84,22 @@ document.getElementById('runSweep').onclick = async () => {
 document.getElementById('runNotify').onclick = async () => {
   const out = await fetch('/runs/milestones-notify', {method: 'POST'}).then(r => r.json());
   document.getElementById('controlStatus').textContent = 'Notify done: ' + JSON.stringify(out);
+  await refreshAll();
+};
+
+document.getElementById('loadDetail').onclick = async () => {
+  await refreshProjectDetail();
+};
+
+document.getElementById('sendTest').onclick = async () => {
+  const id = document.getElementById('detailProject').value;
+  if (!id) return;
+  const out = await fetch(`/projects/${id}/email-test`, {
+    method: 'POST',
+    headers: {'content-type':'application/json'},
+    body: JSON.stringify({})
+  }).then(r => r.json());
+  document.getElementById('controlStatus').textContent = 'Test email: ' + JSON.stringify(out);
   await refreshAll();
 };
 

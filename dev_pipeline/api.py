@@ -5,8 +5,10 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from .email_utils import send_email
 from .logs_api import get_notifications, get_runs, get_status_audit
 from .milestones import detect_and_notify
+from .project_detail import build_project_timeline
 from .registry import get_project, load_registry, set_project_status
 from .sweeper import run_sweep
 
@@ -22,6 +24,10 @@ if WEBUI_DIR.exists():
 class StatusPatch(BaseModel):
     status: str
     note: str | None = None
+
+
+class EmailTestBody(BaseModel):
+    to: str | None = None
 
 
 @app.get("/")
@@ -46,6 +52,14 @@ def project_detail(project_id: str):
     try:
         _, p = get_project(project_id)
         return p.model_dump(mode="json")
+    except KeyError:
+        raise HTTPException(status_code=404, detail="project not found")
+
+
+@app.get("/projects/{project_id}/timeline")
+def project_timeline(project_id: str, limit: int = 100):
+    try:
+        return build_project_timeline(project_id, limit=limit)
     except KeyError:
         raise HTTPException(status_code=404, detail="project not found")
 
@@ -84,3 +98,24 @@ def logs_status_audit(limit: int = 50):
 @app.get("/logs/notifications")
 def logs_notifications(limit: int = 50):
     return get_notifications(limit=limit)
+
+
+@app.post('/projects/{project_id}/email-test')
+def project_email_test(project_id: str, body: EmailTestBody):
+    try:
+        _, p = get_project(project_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail='project not found')
+
+    recipient = body.to or p.owner_notify_email
+    subject = f"[Test] Dev Pipeline notification for {p.name}"
+    message = (
+        f"This is a test notification for project {p.name} ({p.id}).\n"
+        f"Status: {p.status}\n"
+        f"Next milestone: {p.next_milestone or 'unspecified'}\n"
+    )
+    try:
+        send_email(recipient, subject, message)
+        return {'ok': True, 'recipient': recipient}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
