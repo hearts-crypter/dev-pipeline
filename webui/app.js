@@ -61,7 +61,7 @@ async function refreshProjects() {
       }
     }
 
-    const lockText = p.lock_mode ? `${p.lock_mode}:${p.lock_owner || 'n/a'}` : 'free';
+    const lockText = p.lock_mode ? 'locked' : 'free';
 
     tr.innerHTML = `
       <td>${p.id}</td>
