@@ -43,7 +43,7 @@ def _git(cmd: list[str], cwd: Path) -> tuple[bool, str]:
         return False, str(e)
 
 
-def _ensure_repo_initialized(repo_path: Path) -> tuple[bool, str]:
+def ensure_repo_initialized(repo_path: Path) -> tuple[bool, str]:
     if not repo_path.exists():
         return False, f'repo path does not exist: {repo_path}'
 
@@ -83,7 +83,7 @@ def process_repo_requests(limit: int = 20) -> dict:
             updates.append(rec)
             continue
 
-        ok, msg = _ensure_repo_initialized(Path(proj.repo_path))
+        ok, msg = ensure_repo_initialized(Path(proj.repo_path))
         rec['processed_at'] = _now_iso()
         if not ok:
             rec['status'] = 'failed'

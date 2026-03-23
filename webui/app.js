@@ -24,7 +24,7 @@ async function refreshProjects() {
     const tr = document.createElement('tr');
     const repoCell = p.repo_url
       ? `<a href="${p.repo_url}" target="_blank" rel="noopener noreferrer"><button>GitHub</button></a>`
-      : `<button id="repoReq-${p.id}">Request Repo</button>`;
+      : `<button id="pubReq-${p.id}">Request GitHub Publish</button>`;
 
     tr.innerHTML = `
       <td>${p.id}</td>
@@ -51,15 +51,15 @@ async function refreshProjects() {
       await refreshAll();
     };
 
-    const reqBtn = document.getElementById(`repoReq-${p.id}`);
+    const reqBtn = document.getElementById(`pubReq-${p.id}`);
     if (reqBtn) {
       reqBtn.onclick = async () => {
-        const out = await fetch(`/projects/${p.id}/repo-request`, {
+        const out = await fetch(`/projects/${p.id}/publish-request`, {
           method: 'POST',
           headers: {'content-type':'application/json'},
           body: JSON.stringify({source: 'webui'})
         }).then(r => r.json());
-        document.getElementById('controlStatus').textContent = 'Repo request queued: ' + JSON.stringify(out);
+        document.getElementById('controlStatus').textContent = 'Publish request queued: ' + JSON.stringify(out);
         await refreshAll();
       };
     }
@@ -81,9 +81,9 @@ async function refreshNotifications() {
   document.getElementById('notifications').textContent = JSON.stringify(items, null, 2);
 }
 
-async function refreshRepoRequests() {
-  const items = await jget('/logs/repo-requests?limit=20');
-  document.getElementById('repoRequests').textContent = JSON.stringify(items, null, 2);
+async function refreshPublishRequests() {
+  const items = await jget('/logs/publish-requests?limit=20');
+  document.getElementById('publishRequests').textContent = JSON.stringify(items, null, 2);
 }
 
 function fmtList(title, items, mapFn) {
@@ -112,7 +112,7 @@ async function refreshProjectDetail() {
 }
 
 async function refreshAll() {
-  await Promise.all([refreshProjects(), refreshRuns(), refreshNotifications(), refreshRepoRequests()]);
+  await Promise.all([refreshProjects(), refreshRuns(), refreshNotifications(), refreshPublishRequests()]);
   await refreshProjectDetail();
 }
 
@@ -131,6 +131,12 @@ document.getElementById('runNotify').onclick = async () => {
 document.getElementById('runRepoProc').onclick = async () => {
   const out = await fetch('/runs/process-repo-requests', {method: 'POST'}).then(r => r.json());
   document.getElementById('controlStatus').textContent = 'Repo processing: ' + JSON.stringify(out);
+  await refreshAll();
+};
+
+document.getElementById('runPublishProc').onclick = async () => {
+  const out = await fetch('/runs/process-publish-requests', {method: 'POST'}).then(r => r.json());
+  document.getElementById('controlStatus').textContent = 'Publish processing: ' + JSON.stringify(out);
   await refreshAll();
 };
 

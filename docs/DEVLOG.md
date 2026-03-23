@@ -61,8 +61,21 @@
   - `scripts/process_repo_requests.py`
 - Added API trigger endpoint:
   - `POST /runs/process-repo-requests`
-- Added UI control button: `Process repo requests`.
+- Added UI control button: `Process repo prep`.
 - Added recurring cron job `dev-pipeline-repo-request-processor` (every 30 minutes).
+
+### Publish-request model alignment
+- Local git initialization is now treated as default/automatic in active-project sweeps.
+- Added explicit GitHub publish request flow:
+  - `POST /projects/{id}/publish-request`
+  - `GET /logs/publish-requests`
+  - `POST /runs/process-publish-requests`
+- Added modules/scripts:
+  - `dev_pipeline/publish_requests.py`
+  - `dev_pipeline/publish_manager.py`
+  - `scripts/process_publish_requests.py`
+- UI now shows `Request GitHub Publish` for projects without `repo_url`.
+- Added recurring cron job `dev-pipeline-publish-request-processor` (every 30 minutes).
 
 ### Automation schedules
 - Scheduled automation jobs:
