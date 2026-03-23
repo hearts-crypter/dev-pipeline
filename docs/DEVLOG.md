@@ -80,9 +80,10 @@
 ### Concurrency guardrails (manual vs automatic development)
 - Added project lock module: `dev_pipeline/locks.py`.
 - Added API endpoints:
-  - `POST /projects/{id}/focus-start`
-  - `POST /projects/{id}/focus-stop`
-- Added Web UI controls per project: `Focus` and `Unfocus`.
+  - `POST /projects/{id}/lock-start`
+  - `POST /projects/{id}/lock-stop`
+  - (`focus-*` kept as backward-compatible aliases)
+- Added Web UI lock toggle control per project (single `Lock`/`Unlock` button).
 - Sweeper now skips projects under active manual lock and acquires a short auto lock while processing active projects to avoid overlap.
 
 ### Automation schedules

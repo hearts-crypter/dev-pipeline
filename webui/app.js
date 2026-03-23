@@ -75,8 +75,7 @@ async function refreshProjects() {
           <option>active</option><option>paused</option><option>blocked</option><option>stopped</option><option>finished</option>
         </select>
         <button id="btn-${p.id}">Set</button>
-        <button id="focusOn-${p.id}">Focus</button>
-        <button id="focusOff-${p.id}">Unfocus</button>
+        <button id="lockToggle-${p.id}">${p.lock_mode === 'manual' ? 'Unlock' : 'Lock'}</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -138,23 +137,26 @@ async function refreshProjects() {
       };
     }
 
-    const onBtn = document.getElementById(`focusOn-${p.id}`);
-    onBtn.onclick = async () => {
-      const out = await fetch(`/projects/${p.id}/focus-start`, {
-        method: 'POST', headers: {'content-type':'application/json'},
-        body: JSON.stringify({owner: 'webui', ttl_minutes: 120})
-      }).then(r => r.json());
-      setToast(out.ok ? `🔒 Focus lock enabled for ${p.name}` : `❌ Focus lock failed: ${JSON.stringify(out)}`, out.ok ? 'ok' : 'err');
-      await refreshAll();
-    };
+    const toggleBtn = document.getElementById(`lockToggle-${p.id}`);
+    toggleBtn.onclick = async () => {
+      const isManualLocked = p.lock_mode === 'manual';
+      const endpoint = isManualLocked ? 'lock-stop' : 'lock-start';
+      const body = isManualLocked
+        ? {owner: 'webui', force: true}
+        : {owner: 'webui', ttl_minutes: 120};
 
-    const offBtn = document.getElementById(`focusOff-${p.id}`);
-    offBtn.onclick = async () => {
-      const out = await fetch(`/projects/${p.id}/focus-stop`, {
+      const out = await fetch(`/projects/${p.id}/${endpoint}`, {
         method: 'POST', headers: {'content-type':'application/json'},
-        body: JSON.stringify({owner: 'webui', force: true})
+        body: JSON.stringify(body)
       }).then(r => r.json());
-      setToast(out.ok ? `🔓 Focus lock released for ${p.name}` : `❌ Unfocus failed: ${JSON.stringify(out)}`, out.ok ? 'ok' : 'err');
+
+      if (out.ok && !isManualLocked) {
+        setToast(`🔒 Lock enabled for ${p.name}`, 'ok');
+      } else if (out.ok && isManualLocked) {
+        setToast(`🔓 Unlocked ${p.name}`, 'ok');
+      } else {
+        setToast(`❌ Lock toggle failed: ${JSON.stringify(out)}`, 'err');
+      }
       await refreshAll();
     };
 

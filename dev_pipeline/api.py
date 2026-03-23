@@ -160,8 +160,8 @@ def project_publish_request(project_id: str, body: RepoRequestBody):
         raise HTTPException(status_code=404, detail='project not found')
 
 
-@app.post('/projects/{project_id}/focus-start')
-def project_focus_start(project_id: str, body: LockBody):
+@app.post('/projects/{project_id}/lock-start')
+def project_lock_start(project_id: str, body: LockBody):
     try:
         res = acquire_lock(project_id, mode='manual', owner=body.owner, ttl_minutes=body.ttl_minutes, force=body.force)
         return {'ok': bool(res.get('ok')), 'lock': res}
@@ -169,13 +169,24 @@ def project_focus_start(project_id: str, body: LockBody):
         raise HTTPException(status_code=404, detail='project not found')
 
 
-@app.post('/projects/{project_id}/focus-stop')
-def project_focus_stop(project_id: str, body: LockBody):
+@app.post('/projects/{project_id}/lock-stop')
+def project_lock_stop(project_id: str, body: LockBody):
     try:
         res = release_lock(project_id, owner=body.owner, force=body.force)
         return {'ok': bool(res.get('ok')), 'lock': res}
     except KeyError:
         raise HTTPException(status_code=404, detail='project not found')
+
+
+# Backward compatibility aliases
+@app.post('/projects/{project_id}/focus-start')
+def project_focus_start(project_id: str, body: LockBody):
+    return project_lock_start(project_id, body)
+
+
+@app.post('/projects/{project_id}/focus-stop')
+def project_focus_stop(project_id: str, body: LockBody):
+    return project_lock_stop(project_id, body)
 
 
 @app.post('/projects/{project_id}/repo-visibility')
