@@ -64,14 +64,14 @@ def run_sweep() -> dict:
 
         local_ok, local_msg = ensure_repo_initialized(repo)
         git_status = _safe_git_status(repo)
-        autodev = run_autodev_tick(project.id, project.repo_path)
+        autodev = run_autodev_tick(project.id, project.repo_path, max_tasks=3)
 
         action = {
             "project_id": project.id,
             "result": "inspected",
             "local_repo": {"ok": local_ok, "message": local_msg},
             "git_status": git_status,
-            "autodev": {"changed": autodev.changed, "summary": autodev.summary},
+            "autodev": {"changed": autodev.changed, "summary": autodev.summary, "completed_tasks": autodev.completed_tasks or []},
             "next_milestone": project.next_milestone,
             "lock": lock,
         }
