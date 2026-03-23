@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+from .milestones import detect_and_notify
 from .registry import get_project, load_registry, set_project_status
 from .sweeper import run_sweep
 
@@ -45,3 +46,8 @@ def patch_status(project_id: str, body: StatusPatch):
 @app.post("/runs/sweep")
 def trigger_sweep():
     return run_sweep()
+
+
+@app.post("/runs/milestones-notify")
+def trigger_milestone_notify():
+    return detect_and_notify()

@@ -19,6 +19,7 @@ class Project(BaseModel):
     last_progress_at: str | None = None
     owner_notify_email: str = "dev@ahjc.me"
     notes: str | None = None
+    webui_url: str | None = None
 
 
 class Registry(BaseModel):

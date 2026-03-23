@@ -23,11 +23,14 @@ Phase 1 implementation in progress.
 - Canonical registry file in `registry/projects.yaml`
 - Registry read/write + status-change audit logger
 - Sweep runner (`scripts/run_sweep.py`) that inspects active projects and logs runs
+- Milestone notifier (`scripts/milestone_notify.py`) that sends email on newly completed roadmap phases
+- Newsletter section renderer (`scripts/render_newsletter_section.py`) for project status injection
 - FastAPI service (`dev_pipeline/api.py`) with:
   - `GET /projects`
   - `GET /projects/{id}`
   - `PATCH /projects/{id}/status`
   - `POST /runs/sweep`
+  - `POST /runs/milestones-notify`
 
 ## Quick start
 ```bash
