@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .autodev import run_autodev_tick
 from .locks import acquire_lock, lock_status, release_lock
+from .milestones import sync_project_milestones
 from .paths import LOG_DIR, RUN_LOG_PATH
 from .registry import load_registry, save_registry
 from .repo_manager import ensure_repo_initialized
@@ -80,6 +81,9 @@ def run_sweep() -> dict:
         release_lock(project.id, owner='sweeper', force=True)
 
     save_registry(reg)
+    milestone_sync = sync_project_milestones()
+    run["milestone_sync"] = milestone_sync
+
     with RUN_LOG_PATH.open("a", encoding="utf-8") as f:
         f.write(json.dumps(run) + "\n")
     return run

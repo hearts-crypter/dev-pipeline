@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from .email_utils import send_email
 from .locks import acquire_lock, release_lock
 from .logs_api import get_notifications, get_publish_requests, get_repo_requests, get_runs, get_status_audit
-from .milestones import detect_and_notify
+from .milestones import detect_and_notify, sync_project_milestones
 from .project_detail import build_project_timeline
 from .publish_manager import process_publish_requests, publish_project_now, set_repo_visibility, sync_all_repo_urls
 from .publish_requests import submit_publish_request
@@ -65,6 +65,7 @@ def health() -> dict[str, str]:
 @app.get("/projects")
 def list_projects():
     sync_all_repo_urls()
+    sync_project_milestones()
     return load_registry().model_dump(mode="json")
 
 
@@ -99,6 +100,11 @@ def patch_status(project_id: str, body: StatusPatch):
 @app.post("/runs/sweep")
 def trigger_sweep():
     return run_sweep()
+
+
+@app.post("/runs/milestones-sync")
+def trigger_milestone_sync():
+    return sync_project_milestones()
 
 
 @app.post("/runs/milestones-notify")

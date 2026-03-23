@@ -105,3 +105,13 @@
   - `dev-pipeline-sweep` every 30m
   - `dev-pipeline-milestone-notify` every 15m
   - `dev-pipeline-newsletter-section` daily at 08:45 America/Los_Angeles
+
+### Milestone sync hardening (manual + autodev parity)
+- Added roadmap-derived `next_milestone` synchronization in `dev_pipeline/milestones.py`:
+  - Parses roadmap checklist phases.
+  - Sets `next_milestone` to first unfinished checklist item (`<phase> — <task>`).
+  - Marks fully complete roadmaps as `All listed roadmap checklist milestones complete`.
+- `detect_and_notify()` now performs milestone sync before sending notifications and includes `next_milestone` in email/log payloads.
+- Sweeper now runs milestone sync after each sweep and records `milestone_sync` in run logs.
+- API project listing now syncs milestones before returning data.
+- Added API endpoint: `POST /runs/milestones-sync` for manual refresh.

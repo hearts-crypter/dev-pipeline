@@ -5,7 +5,7 @@ from pathlib import Path
 
 from .email_utils import send_email
 from .paths import LOG_DIR
-from .registry import load_registry
+from .registry import load_registry, save_registry
 
 NOTIFY_STATE_PATH = LOG_DIR / 'milestone_notify_state.json'
 NOTIFY_LOG_PATH = LOG_DIR / 'notifications.jsonl'
@@ -43,37 +43,86 @@ def _append_notify_log(rec: dict) -> None:
         f.write(json.dumps(rec) + '\n')
 
 
-def _parse_completed_phases(roadmap_path: Path) -> list[str]:
+def _parse_roadmap_phases(roadmap_path: Path) -> list[dict]:
     if not roadmap_path.exists():
         return []
 
     lines = roadmap_path.read_text(encoding='utf-8', errors='ignore').splitlines()
-    phases: list[tuple[str, list[str]]] = []
+    phases: list[dict] = []
     current_title = None
-    current_checks: list[str] = []
+    current_checks: list[dict] = []
+
+    def flush_current() -> None:
+        if current_title is not None:
+            phases.append({'title': current_title, 'checks': current_checks[:]})
 
     for line in lines:
-        m = re.match(r'^##\s+(.+)$', line.strip())
-        if m:
-            if current_title is not None:
-                phases.append((current_title, current_checks))
-            current_title = m.group(1).strip()
+        section = re.match(r'^##\s+(.+)$', line.strip())
+        if section:
+            flush_current()
+            current_title = section.group(1).strip()
             current_checks = []
             continue
-        if re.match(r'^- \[[ xX]\]\s+', line.strip()):
-            current_checks.append(line.strip())
 
-    if current_title is not None:
-        phases.append((current_title, current_checks))
+        item = re.match(r'^- \[([ xX])\]\s+(.+)$', line.strip())
+        if item:
+            current_checks.append({'checked': item.group(1).lower() == 'x', 'text': item.group(2).strip()})
 
+    flush_current()
+    return phases
+
+
+def _completed_phase_titles(phases: list[dict]) -> list[str]:
     completed = []
-    for title, checks in phases:
-        if checks and all(c.startswith('- [x]') or c.startswith('- [X]') for c in checks):
-            completed.append(title)
+    for phase in phases:
+        checks = phase.get('checks', [])
+        if checks and all(c.get('checked') for c in checks):
+            completed.append(phase['title'])
     return completed
 
 
+def _derive_next_milestone(phases: list[dict]) -> str | None:
+    # First unfinished checklist item in order wins.
+    for phase in phases:
+        checks = phase.get('checks', [])
+        if not checks:
+            continue
+        for item in checks:
+            if not item.get('checked'):
+                return f"{phase['title']} — {item.get('text')}"
+
+    # If there are phases but no unfinished checklist entries, roadmap is complete.
+    if phases:
+        return 'All listed roadmap checklist milestones complete'
+    return None
+
+
+def sync_project_milestones() -> dict:
+    reg = load_registry()
+    changed = []
+
+    for project in reg.projects:
+        roadmap = Path(project.roadmap_doc) if project.roadmap_doc else None
+        if not roadmap or not roadmap.exists():
+            continue
+
+        phases = _parse_roadmap_phases(roadmap)
+        next_milestone = _derive_next_milestone(phases)
+
+        if project.next_milestone != next_milestone:
+            project.next_milestone = next_milestone
+            project.last_progress_at = _now_iso()
+            changed.append({'project_id': project.id, 'next_milestone': next_milestone})
+
+    if changed:
+        save_registry(reg)
+
+    return {'updated': len(changed), 'projects': changed}
+
+
 def detect_and_notify() -> dict:
+    sync_info = sync_project_milestones()
+
     reg = load_registry()
     state = _load_state()
 
@@ -88,7 +137,8 @@ def detect_and_notify() -> dict:
         if not roadmap:
             continue
 
-        completed = _parse_completed_phases(roadmap)
+        phases = _parse_roadmap_phases(roadmap)
+        completed = _completed_phase_titles(phases)
         raw_proj_state = state.get(project.id, {})
         if isinstance(raw_proj_state, list):
             # backward compatibility with earlier state format
@@ -108,6 +158,7 @@ def detect_and_notify() -> dict:
             f"Project: {project.name}\n"
             f"Project ID: {project.id}\n"
             f"Status: {project.status}\n"
+            f"Next milestone: {project.next_milestone or 'unspecified'}\n"
             f"Newly completed milestones:\n"
             + ''.join(f"- {m}\n" for m in new)
             + f"\nRoadmap: {project.roadmap_doc or 'N/A'}\n"
@@ -123,6 +174,7 @@ def detect_and_notify() -> dict:
                 'project_id': project.id,
                 'recipient': project.owner_notify_email,
                 'milestones': new,
+                'next_milestone': project.next_milestone,
                 'status': 'sent',
             }
             sent.append(rec)
@@ -137,10 +189,11 @@ def detect_and_notify() -> dict:
                 'project_id': project.id,
                 'recipient': project.owner_notify_email,
                 'milestones': new,
+                'next_milestone': project.next_milestone,
                 'status': 'failed',
                 'error': str(e),
             }
             _append_notify_log(rec)
 
     _save_state(state)
-    return {'scanned_projects': scanned, 'sent': sent}
+    return {'scanned_projects': scanned, 'synced_milestones': sync_info, 'sent': sent}
