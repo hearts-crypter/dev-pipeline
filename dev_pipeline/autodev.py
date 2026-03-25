@@ -109,6 +109,40 @@ def _paper_digest_handler(repo: Path, task: str) -> tuple[bool, str]:
     return (False, "No handler for task yet")
 
 
+def _bookkeeping_pipeline_handler(repo: Path, task: str) -> tuple[bool, str]:
+    backend = repo / "backend"
+    app_main = backend / "app" / "main.py"
+    models = backend / "app" / "models.py"
+    migrations = backend / "migrations"
+
+    if task == "Scaffold backend app structure (`backend/app`)":
+        return ((backend / "app").exists() and app_main.exists(), "Detected backend app scaffold")
+
+    if task == "Define initial data models for transactions/categories/payment methods":
+        if not models.exists():
+            models.write_text(
+                """from datetime import datetime\nfrom typing import Optional\n\nfrom sqlmodel import Field, SQLModel\n\n\nclass Category(SQLModel, table=True):\n    id: Optional[int] = Field(default=None, primary_key=True)\n    name: str\n\n\nclass PaymentMethod(SQLModel, table=True):\n    id: Optional[int] = Field(default=None, primary_key=True)\n    name: str\n    method_type: str = \"other\"\n\n\nclass Transaction(SQLModel, table=True):\n    id: Optional[int] = Field(default=None, primary_key=True)\n    occurred_at: datetime\n    merchant: str\n    description: str = \"\"\n    amount: float\n    currency: str = \"USD\"\n    category_id: Optional[int] = None\n    payment_method_id: Optional[int] = None\n\n\nclass AuditLog(SQLModel, table=True):\n    id: Optional[int] = Field(default=None, primary_key=True)\n    transaction_id: Optional[int] = None\n    action: str\n    created_at: datetime = Field(default_factory=datetime.utcnow)\n""",
+                encoding="utf-8",
+            )
+        return (True, "Created initial SQLModel data models")
+
+    if task == "Add migration scaffolding (Alembic init + first migration)":
+        versions = migrations / "versions"
+        versions.mkdir(parents=True, exist_ok=True)
+        env_py = migrations / "env.py"
+        if not env_py.exists():
+            env_py.write_text("# Placeholder Alembic env; full wiring in next iteration.\n", encoding="utf-8")
+        first_mig = versions / "0001_init.py"
+        if not first_mig.exists():
+            first_mig.write_text(
+                """\"\"\"initial placeholder migration\"\"\"\n\nrevision = \"0001_init\"\ndown_revision = None\nbranch_labels = None\ndepends_on = None\n\n\ndef upgrade() -> None:\n    pass\n\n\ndef downgrade() -> None:\n    pass\n""",
+                encoding="utf-8",
+            )
+        return (True, "Added migration scaffold placeholders")
+
+    return (False, "No handler for task yet")
+
+
 def run_autodev_tick(project_id: str, repo_path: str, max_tasks: int = 3) -> AutoDevResult:
     repo = Path(repo_path)
     roadmap = repo / "docs" / "ROADMAP.md"
@@ -120,7 +154,11 @@ def run_autodev_tick(project_id: str, repo_path: str, max_tasks: int = 3) -> Aut
     if not unchecked:
         return AutoDevResult(False, "no unchecked tasks", [])
 
-    if project_id != "paper-digest":
+    if project_id == "paper-digest":
+        handler = _paper_digest_handler
+    elif project_id == "bookkeeping-pipeline":
+        handler = _bookkeeping_pipeline_handler
+    else:
         return AutoDevResult(False, "no project-specific autodev handler", [])
 
     completed: list[str] = []
@@ -129,7 +167,7 @@ def run_autodev_tick(project_id: str, repo_path: str, max_tasks: int = 3) -> Aut
     for task in unchecked:
         if len(completed) >= max_tasks:
             break
-        ok, summary = _paper_digest_handler(repo, task)
+        ok, summary = handler(repo, task)
         if ok:
             _check_task(roadmap, task)
             if devlog.exists():
