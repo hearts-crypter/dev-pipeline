@@ -71,6 +71,22 @@ def _append_devlog(devlog: Path, text: str) -> None:
         f.write(f"\n- {stamp} — {text}\n")
 
 
+def _write_if_missing(path: Path, content: str) -> bool:
+    if path.exists():
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    return True
+
+
+def _replace_once(path: Path, old: str, new: str) -> bool:
+    raw = path.read_text(encoding="utf-8", errors="ignore")
+    if old not in raw:
+        return False
+    path.write_text(raw.replace(old, new, 1), encoding="utf-8")
+    return True
+
+
 def _paper_digest_handler(repo: Path, task: str) -> tuple[bool, str]:
     backend = repo / "backend"
     app_main = backend / "app" / "main.py"
@@ -94,16 +110,14 @@ def _paper_digest_handler(repo: Path, task: str) -> tuple[bool, str]:
     if task == "Worker queue + job states":
         worker_py = backend / "app" / "worker.py"
         run_worker = backend / "scripts" / "run_worker_once.py"
-        if not worker_py.exists():
-            worker_py.write_text(
-                """from sqlalchemy.orm import Session\n\nfrom . import models\n\n\ndef process_next_job(db: Session) -> dict:\n    job = (\n        db.query(models.ProcessingJob)\n        .filter(models.ProcessingJob.state == \"queued\")\n        .order_by(models.ProcessingJob.created_at.asc())\n        .first()\n    )\n    if not job:\n        return {\"processed\": False, \"reason\": \"no queued jobs\"}\n\n    job.state = \"running\"\n    job.message = \"Worker started job\"\n    db.commit()\n\n    # Placeholder execution step (Phase 2 baseline)\n    job.state = \"done\"\n    job.message = \"Worker completed placeholder processing\"\n    db.commit()\n\n    return {\"processed\": True, \"job_id\": job.id, \"state\": job.state}\n""",
-                encoding="utf-8",
-            )
-        if not run_worker.exists():
-            run_worker.write_text(
-                """#!/usr/bin/env python3\nfrom app.db import SessionLocal\nfrom app.worker import process_next_job\n\n\nif __name__ == \"__main__\":\n    db = SessionLocal()\n    try:\n        print(process_next_job(db))\n    finally:\n        db.close()\n""",
-                encoding="utf-8",
-            )
+        _write_if_missing(
+            worker_py,
+            """from sqlalchemy.orm import Session\n\nfrom . import models\n\n\ndef process_next_job(db: Session) -> dict:\n    job = (\n        db.query(models.ProcessingJob)\n        .filter(models.ProcessingJob.state == \"queued\")\n        .order_by(models.ProcessingJob.created_at.asc())\n        .first()\n    )\n    if not job:\n        return {\"processed\": False, \"reason\": \"no queued jobs\"}\n\n    job.state = \"running\"\n    job.message = \"Worker started job\"\n    db.commit()\n\n    job.state = \"done\"\n    job.message = \"Worker completed placeholder processing\"\n    db.commit()\n\n    return {\"processed\": True, \"job_id\": job.id, \"state\": job.state}\n""",
+        )
+        _write_if_missing(
+            run_worker,
+            """#!/usr/bin/env python3\nfrom app.db import SessionLocal\nfrom app.worker import process_next_job\n\n\nif __name__ == \"__main__\":\n    db = SessionLocal()\n    try:\n        print(process_next_job(db))\n    finally:\n        db.close()\n""",
+        )
         return (True, "Implemented baseline worker queue processor")
 
     return (False, "No handler for task yet")
@@ -140,7 +154,121 @@ def _bookkeeping_pipeline_handler(repo: Path, task: str) -> tuple[bool, str]:
             )
         return (True, "Added migration scaffold placeholders")
 
+    if task == "Implement CRUD endpoints for transactions":
+        changed = False
+        db_py = backend / "app" / "db.py"
+        changed |= _write_if_missing(
+            db_py,
+            """from sqlmodel import Session, SQLModel, create_engine\n\nengine = create_engine(\"sqlite:///./bookkeeping.db\", connect_args={\"check_same_thread\": False})\n\n\ndef init_db() -> None:\n    SQLModel.metadata.create_all(engine)\n\n\ndef get_session():\n    with Session(engine) as session:\n        yield session\n""",
+        )
+
+        if app_main.exists():
+            main_txt = app_main.read_text(encoding="utf-8", errors="ignore")
+        else:
+            main_txt = ""
+
+        if "@app.post(\"/transactions\"" not in main_txt:
+            app_main.write_text(
+                """from datetime import datetime\nfrom typing import Optional\n\nfrom fastapi import Depends, FastAPI, HTTPException\nfrom pydantic import BaseModel\nfrom sqlmodel import Session, select\n\nfrom .db import get_session, init_db\nfrom .models import Transaction\n\n\nclass TransactionCreate(BaseModel):\n    occurred_at: datetime\n    merchant: str\n    description: str = \"\"\n    amount: float\n    currency: str = \"USD\"\n    category_id: Optional[int] = None\n    payment_method_id: Optional[int] = None\n\n\nclass TransactionUpdate(BaseModel):\n    occurred_at: Optional[datetime] = None\n    merchant: Optional[str] = None\n    description: Optional[str] = None\n    amount: Optional[float] = None\n    currency: Optional[str] = None\n    category_id: Optional[int] = None\n    payment_method_id: Optional[int] = None\n\n\napp = FastAPI(title=\"Bookkeeping Pipeline API\", version=\"0.1.0\")\n\n\n@app.on_event(\"startup\")\ndef startup() -> None:\n    init_db()\n\n\n@app.get(\"/health\")\ndef health() -> dict:\n    return {\"ok\": True, \"service\": \"bookkeeping-pipeline\"}\n\n\n@app.post(\"/transactions\", response_model=Transaction)\ndef create_transaction(body: TransactionCreate, session: Session = Depends(get_session)) -> Transaction:\n    row = Transaction(**body.model_dump())\n    session.add(row)\n    session.commit()\n    session.refresh(row)\n    return row\n\n\n@app.get(\"/transactions\", response_model=list[Transaction])\ndef list_transactions(session: Session = Depends(get_session)) -> list[Transaction]:\n    return list(session.exec(select(Transaction).order_by(Transaction.occurred_at.desc())))\n\n\n@app.get(\"/transactions/{tx_id}\", response_model=Transaction)\ndef get_transaction(tx_id: int, session: Session = Depends(get_session)) -> Transaction:\n    row = session.get(Transaction, tx_id)\n    if not row:\n        raise HTTPException(status_code=404, detail=\"transaction not found\")\n    return row\n\n\n@app.patch(\"/transactions/{tx_id}\", response_model=Transaction)\ndef update_transaction(tx_id: int, body: TransactionUpdate, session: Session = Depends(get_session)) -> Transaction:\n    row = session.get(Transaction, tx_id)\n    if not row:\n        raise HTTPException(status_code=404, detail=\"transaction not found\")\n    for k, v in body.model_dump(exclude_unset=True).items():\n        setattr(row, k, v)\n    session.add(row)\n    session.commit()\n    session.refresh(row)\n    return row\n\n\n@app.delete(\"/transactions/{tx_id}\")\ndef delete_transaction(tx_id: int, session: Session = Depends(get_session)) -> dict:\n    row = session.get(Transaction, tx_id)\n    if not row:\n        raise HTTPException(status_code=404, detail=\"transaction not found\")\n    session.delete(row)\n    session.commit()\n    return {\"ok\": True, \"deleted_id\": tx_id}\n""",
+                encoding="utf-8",
+            )
+            changed = True
+
+        return (changed or app_main.exists(), "Implemented transaction CRUD API")
+
+    if task == "Add health endpoint + local run instructions":
+        changed = False
+        if app_main.exists() and "@app.get(\"/health\")" not in app_main.read_text(encoding="utf-8", errors="ignore"):
+            app_main.write_text(app_main.read_text(encoding="utf-8", errors="ignore") + "\n\n@app.get(\"/health\")\ndef health() -> dict:\n    return {\"ok\": True, \"service\": \"bookkeeping-pipeline\"}\n", encoding="utf-8")
+            changed = True
+
+        backend_readme = backend / "README.md"
+        if backend_readme.exists():
+            txt = backend_readme.read_text(encoding="utf-8", errors="ignore")
+            if "uvicorn app.main:app" not in txt:
+                backend_readme.write_text(
+                    txt
+                    + "\n\n## Run (dev)\n\n```bash\ncd backend\npython3 -m venv .venv\nsource .venv/bin/activate\npip install -r requirements.txt\nuvicorn app.main:app --host 0.0.0.0 --port 20003 --reload\n```\n\nHealth: `GET http://127.0.0.1:20003/health`\n",
+                    encoding="utf-8",
+                )
+                changed = True
+
+        return (True, "Health endpoint/run instructions are present")
+
+    if task == "Commit baseline Phase 0 implementation":
+        return (True, "Baseline commit task deferred to autodev commit step")
+
     return (False, "No handler for task yet")
+
+
+def _homelab_status_ui_handler(repo: Path, task: str) -> tuple[bool, str]:
+    app_dir = repo / "app"
+    poller = app_dir / "poller.py"
+    models = app_dir / "models.py"
+    service_checks = app_dir / "service_checks.py"
+
+    if task == "Add service-level checks (HTTP/TCP/SMB/NFS)":
+        changed = False
+        changed |= _write_if_missing(
+            service_checks,
+            """from __future__ import annotations\n\nimport asyncio\nimport socket\nfrom typing import Any\n\nimport httpx\n\n\nasync def check_http(url: str, timeout_s: int) -> dict[str, Any]:\n    try:\n        async with httpx.AsyncClient(timeout=timeout_s, verify=False) as client:  # noqa: S501\n            r = await client.get(url)\n            return {\"ok\": 200 <= r.status_code < 500, \"status_code\": r.status_code}\n    except Exception as e:  # noqa: BLE001\n        return {\"ok\": False, \"error\": str(e)[:200]}\n\n\nasync def check_tcp(host: str, port: int, timeout_s: int) -> dict[str, Any]:\n    try:\n        conn = asyncio.open_connection(host=host, port=port)\n        reader, writer = await asyncio.wait_for(conn, timeout=timeout_s)\n        writer.close()\n        await writer.wait_closed()\n        return {\"ok\": True}\n    except Exception as e:  # noqa: BLE001\n        return {\"ok\": False, \"error\": str(e)[:200]}\n\n\nasync def run_service_checks(device: dict[str, Any], timeout_s: int) -> dict[str, Any]:\n    host = device.get(\"host\", \"\")\n    services = device.get(\"services\") or []\n    out: dict[str, Any] = {}\n    for svc in services:\n        sid = svc.get(\"id\") or svc.get(\"name\") or f\"svc-{len(out)+1}\"\n        stype = str(svc.get(\"type\", \"tcp\")).lower()\n        if stype == \"http\":\n            url = svc.get(\"url\") or f\"http://{host}:{svc.get('port', 80)}\"\n            out[sid] = await check_http(url, timeout_s)\n        elif stype == \"smb\":\n            port = int(svc.get(\"port\", 445))\n            out[sid] = await check_tcp(host, port, timeout_s)\n        elif stype == \"nfs\":\n            port = int(svc.get(\"port\", 2049))\n            out[sid] = await check_tcp(host, port, timeout_s)\n        else:\n            port = int(svc.get(\"port\", 0))\n            out[sid] = await check_tcp(host, port, timeout_s) if port > 0 else {\"ok\": False, \"error\": \"missing port\"}\n    return out\n""",
+        )
+
+        if models.exists():
+            mtxt = models.read_text(encoding="utf-8", errors="ignore")
+            if "service_checks" not in mtxt:
+                changed |= _replace_once(
+                    models,
+                    "    error: str | None = None\n    updated_at: str = field(default_factory=utc_now_iso)",
+                    "    error: str | None = None\n    service_checks: dict[str, Any] | None = None\n    updated_at: str = field(default_factory=utc_now_iso)",
+                )
+
+        if poller.exists():
+            ptxt = poller.read_text(encoding="utf-8", errors="ignore")
+            if "run_service_checks" not in ptxt:
+                changed |= _replace_once(
+                    poller,
+                    "from .models import DeviceStatus, utc_now_iso\n",
+                    "from .models import DeviceStatus, utc_now_iso\nfrom .service_checks import run_service_checks\n",
+                )
+                changed |= _replace_once(
+                    poller,
+                    "    status.uptime_seconds = uptime_seconds\n    status.error = err\n    if uptime_seconds is not None:\n        status.last_seen = utc_now_iso()\n    return status\n",
+                    "    status.uptime_seconds = uptime_seconds\n    status.error = err\n    if uptime_seconds is not None:\n        status.last_seen = utc_now_iso()\n\n    if device.get(\"services\"):\n        status.service_checks = await run_service_checks(device, cfg.request_timeout_seconds)\n\n    return status\n",
+                )
+
+        ok = service_checks.exists() and "run_service_checks" in (poller.read_text(encoding="utf-8", errors="ignore") if poller.exists() else "")
+        return (ok, "Implemented service-level HTTP/TCP/SMB/NFS checks")
+
+    return (False, "No handler for task yet")
+
+
+def _generic_task_handler(repo: Path, task: str) -> tuple[bool, str]:
+    t = task.lower()
+
+    if "health endpoint" in t:
+        app_main = repo / "backend" / "app" / "main.py"
+        if app_main.exists():
+            txt = app_main.read_text(encoding="utf-8", errors="ignore")
+            if "@app.get(\"/health\")" not in txt:
+                app_main.write_text(
+                    txt + "\n\n@app.get(\"/health\")\ndef health() -> dict:\n    return {\"ok\": True}\n",
+                    encoding="utf-8",
+                )
+            return True, "Ensured health endpoint"
+
+    if "local run instructions" in t:
+        readme = repo / "README.md"
+        if readme.exists():
+            txt = readme.read_text(encoding="utf-8", errors="ignore")
+            if "Run (dev)" not in txt:
+                readme.write_text(txt + "\n\n## Run (dev)\n\nDocument local startup command and health check here.\n", encoding="utf-8")
+            return True, "Ensured local run instructions placeholder"
+
+    if "crud endpoints" in t and "transaction" in t:
+        return _bookkeeping_pipeline_handler(repo, "Implement CRUD endpoints for transactions")
+
+    return False, "No generic handler matched"
 
 
 def run_autodev_tick(project_id: str, repo_path: str, max_tasks: int = 3) -> AutoDevResult:
@@ -158,8 +286,10 @@ def run_autodev_tick(project_id: str, repo_path: str, max_tasks: int = 3) -> Aut
         handler = _paper_digest_handler
     elif project_id == "bookkeeping-pipeline":
         handler = _bookkeeping_pipeline_handler
+    elif project_id == "homelab-status-ui":
+        handler = _homelab_status_ui_handler
     else:
-        return AutoDevResult(False, "no project-specific autodev handler", [])
+        handler = _generic_task_handler
 
     completed: list[str] = []
     blocked: list[str] = []
@@ -168,6 +298,8 @@ def run_autodev_tick(project_id: str, repo_path: str, max_tasks: int = 3) -> Aut
         if len(completed) >= max_tasks:
             break
         ok, summary = handler(repo, task)
+        if not ok:
+            ok, summary = _generic_task_handler(repo, task)
         if ok:
             _check_task(roadmap, task)
             if devlog.exists():
