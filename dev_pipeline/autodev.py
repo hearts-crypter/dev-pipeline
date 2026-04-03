@@ -593,7 +593,91 @@ def _generic_task_handler(repo: Path, task: str) -> tuple[bool, str]:
     if "ingest/chat" in t or ("ingest" in t and "chat" in t):
         return _bookkeeping_pipeline_handler(repo, "Add `/ingest/chat` endpoint and extraction schema")
 
+    if "sample dataset template" in t or ("config file" in t and "template" in t):
+        cfg = repo / "config" / "default.yaml"
+        tpl = repo / "data" / "scenarios.template.json"
+        changed = False
+        if _write_if_missing(
+            cfg,
+            """run:
+  seed: 42
+  max_qr_hops: 5
+  max_tool_calls: 20
+  max_wall_time_sec: 30
+  max_repeat_signature: 2
+""",
+        ):
+            changed = True
+        if _write_if_missing(
+            tpl,
+            """{
+  \"scenarios\": [
+    {\"id\": \"linear-4\", \"topology\": \"linear\", \"depth\": 4},
+    {\"id\": \"cycle-2\", \"topology\": \"cycle\", \"cycle_len\": 2}
+  ]
+}
+""",
+        ):
+            changed = True
+        return changed or (cfg.exists() and tpl.exists()), "Ensured config + sample dataset template"
+
+    if "qr graph generator" in t:
+        gen = repo / "src" / "qr_tarpit_lab" / "generator.py"
+        changed = _write_if_missing(
+            gen,
+            """from __future__ import annotations
+
+
+def build_linear(depth: int) -> dict:
+    nodes = [f\"n{i}\" for i in range(max(1, depth))]
+    edges = [{\"from\": nodes[i], \"to\": nodes[i + 1]} for i in range(len(nodes) - 1)]
+    return {\"topology\": \"linear\", \"nodes\": nodes, \"edges\": edges}
+
+
+def build_cycle(cycle_len: int) -> dict:
+    n = max(2, cycle_len)
+    nodes = [f\"c{i}\" for i in range(n)]
+    edges = [{\"from\": nodes[i], \"to\": nodes[(i + 1) % n]} for i in range(n)]
+    return {\"topology\": \"cycle\", \"nodes\": nodes, \"edges\": edges}
+
+
+def build_self_loop() -> dict:
+    return {\"topology\": \"self_loop\", \"nodes\": [\"s0\"], \"edges\": [{\"from\": \"s0\", \"to\": \"s0\"}]}
+
+
+def build_branch(branching: int = 2) -> dict:
+    b = max(2, branching)
+    nodes = [\"root\"] + [f\"b{i}\" for i in range(b)]
+    edges = [{\"from\": \"root\", \"to\": f\"b{i}\"} for i in range(b)]
+    return {\"topology\": \"branch\", \"nodes\": nodes, \"edges\": edges}
+""",
+        )
+        return changed or gen.exists(), "Ensured baseline QR graph generator"
+
     return False, "No generic handler matched"
+
+
+def _ensure_project_handler_scaffold(repo: Path, project_id: str) -> bool:
+    """For newly greenlit projects, ensure a local handler scaffold exists.
+
+    This gives autodev a concrete place to add project-specific task logic
+    instead of repeatedly stalling with no handler guidance.
+    """
+    path = repo / "scripts" / "autodev_handler.py"
+    return _write_if_missing(
+        path,
+        f'''"""Project-local autodev handler scaffold for {project_id}."""
+
+
+def handle_task(task: str) -> tuple[bool, str]:
+    t = task.lower()
+    # Add project-specific task handling here.
+    # Return (True, summary) when handled, else (False, reason)
+    if "" == t:
+        return True, "placeholder"
+    return False, "No project-local handler match"
+''',
+    )
 
 
 def run_autodev_tick(project_id: str, repo_path: str, max_tasks: int = 3) -> AutoDevResult:
@@ -614,6 +698,7 @@ def run_autodev_tick(project_id: str, repo_path: str, max_tasks: int = 3) -> Aut
     elif project_id == "homelab-status-ui":
         handler = _homelab_status_ui_handler
     else:
+        _ensure_project_handler_scaffold(repo, project_id)
         handler = _generic_task_handler
 
     completed: list[str] = []
